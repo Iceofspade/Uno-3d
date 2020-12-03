@@ -13,7 +13,8 @@
     "babylonjs": "^4.2.0",
     "babylonjs-gui": "^4.2.0",
     "babylonjs-materials": "^4.2.0",
-    "babylonjs-viewer": "^4.2.0"
+    "babylonjs-viewer": "^4.2.0",
+    "fs": "0.0.1-security"
   },
   "devDependencies": {
     "electron": "^11.0.3",
