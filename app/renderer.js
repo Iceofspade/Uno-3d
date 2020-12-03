@@ -18,33 +18,80 @@ var __importStar = (this && this.__importStar) || function (mod) {
     __setModuleDefault(result, mod);
     return result;
 };
-Object.defineProperty(exports, "__esModule", { value: true });
-const BABYLON = __importStar(require("babylonjs"));
-window.addEventListener('DOMContentLoaded', function () {
-    // get the canvas DOM element
-    let canvas = document.getElementById('renderCanvas');
-    // load the 3D engine
-    let engine = new BABYLON.Engine(canvas, true);
-    // createScene function that creates and return the scene
-    let createScene = () => {
-        let scene = new BABYLON.Scene(engine);
-        let camera = new BABYLON.FreeCamera("Camera1", new BABYLON.Vector3(0, 10, -10), scene);
-        camera.attachControl(true);
-        camera.setTarget(BABYLON.Vector3.Zero());
-        let light = new BABYLON.PointLight("light", new BABYLON.Vector3(0, 4, -5), scene);
-        let ground = BABYLON.Mesh.CreateGround("ground1", 6, 6, 2, scene);
-        let sphere = BABYLON.Mesh.CreateSphere("sphere", 16, 2, scene);
-        sphere.position.y = 1;
-        return scene;
-    };
-    // call the createScene function
-    var scene = createScene();
-    // run the render loop
-    engine.runRenderLoop(function () {
-        scene.render();
+var __awaiter = (this && this.__awaiter) || function (thisArg, _arguments, P, generator) {
+    function adopt(value) { return value instanceof P ? value : new P(function (resolve) { resolve(value); }); }
+    return new (P || (P = Promise))(function (resolve, reject) {
+        function fulfilled(value) { try { step(generator.next(value)); } catch (e) { reject(e); } }
+        function rejected(value) { try { step(generator["throw"](value)); } catch (e) { reject(e); } }
+        function step(result) { result.done ? resolve(result.value) : adopt(result.value).then(fulfilled, rejected); }
+        step((generator = generator.apply(thisArg, _arguments || [])).next());
     });
-    // the canvas/window resize event handler
-    window.addEventListener('resize', function () {
-        engine.resize();
+};
+Object.defineProperty(exports, "__esModule", { value: true });
+exports.handler = void 0;
+const BABYLON = __importStar(require("babylonjs"));
+const fs_1 = require("fs");
+class SceneHandler {
+    constructor() {
+        this.sceneList = [];
+        //Get the name of all files that have a scene that can be rendered
+        this.loadScenes = () => __awaiter(this, void 0, void 0, function* () {
+            this.sceneList = fs_1.readdirSync("./app/scenes/").filter(d => d.endsWith(".js"));
+        });
+        //Set the canvas for everything to be rendered on
+        this.setCanvas = (canvas) => __awaiter(this, void 0, void 0, function* () {
+            this.canvas = canvas;
+            this.engine = new BABYLON.Engine(this.canvas, true);
+        });
+        //A deafault scene to fall back on if an attempt load a scene fails
+        this.defaultScene = () => {
+            let scene = new BABYLON.Scene(this.engine);
+            let camera = new BABYLON.FreeCamera("Camera1", new BABYLON.Vector3(0, 10, -10), scene);
+            camera.attachControl(true);
+            camera.setTarget(BABYLON.Vector3.Zero());
+            let light = new BABYLON.PointLight("light", new BABYLON.Vector3(0, 4, -5), scene);
+            let ground = BABYLON.Mesh.CreateGround("ground1", 6, 6, 2, scene);
+            let sphere = BABYLON.Mesh.CreateSphere("sphere", 16, 2, scene);
+            sphere.position.y = 1;
+            return scene;
+        };
+        // Setting the new scene to render
+        this.setScene = (sceneName) => __awaiter(this, void 0, void 0, function* () {
+            this.loadScenes().then(() => {
+                let i = this.sceneList.indexOf(sceneName + ".js");
+                if (i === -1) {
+                    console.error("Attempted to load none existing scene");
+                    this.scene = this.defaultScene();
+                }
+                else if (i > -1) {
+                    let pull = require(`./scenes/${this.sceneList[i]}`);
+                    this.scene = pull.app.scene(this.engine, this.canvas);
+                }
+            });
+        });
+        this.sceneList = [];
+        this.engine;
+        this.canvas;
+        this.scene;
+    }
+    // Start rendering of scene
+    initialize() {
+        var _a;
+        this.canvas = document.getElementById('renderCanvas');
+        (_a = this.engine) === null || _a === void 0 ? void 0 : _a.runRenderLoop(() => {
+            this.scene.render();
+        });
+    }
+}
+exports.handler = new SceneHandler();
+window.addEventListener('DOMContentLoaded', function () {
+    exports.handler.setCanvas(document.getElementById('renderCanvas')).then(() => {
+        //Rename test to what ever you want the starting scene to be      
+        exports.handler.setScene("test").then(() => {
+            exports.handler.initialize();
+        });
+        window.addEventListener('resize', function () {
+            exports.handler.engine == null ? console.error("Cannot resize engine or null") : exports.handler.engine.resize();
+        });
     });
 });
