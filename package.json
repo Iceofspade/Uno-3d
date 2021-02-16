@@ -5,7 +5,8 @@
   "main": "/app/main.js",
   "scripts": {
     "start": "electron ./app/main.js",
-    "dist": "electron-packager ."
+    "dist": "electron-packager .",
+    "watchfiles":"tsc -w"
   },
   "author": "Spade",
   "license": "ISC",

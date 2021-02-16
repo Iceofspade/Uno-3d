@@ -87,7 +87,7 @@ exports.handler = new SceneHandler();
 window.addEventListener('DOMContentLoaded', function () {
     exports.handler.setCanvas(document.getElementById('renderCanvas')).then(() => {
         //Rename test to what ever you want the starting scene to be      
-        exports.handler.setScene("test").then(() => {
+        exports.handler.setScene("game").then(() => {
             exports.handler.initialize();
         });
         window.addEventListener('resize', function () {
