@@ -11,8 +11,8 @@ let createWindow = () => {
     width: 800,
     webPreferences: {
     nodeIntegration: true
-    }
-    // icon:"img/dice.png"
+    },
+    icon:"../assets/img/Uno cards/back.png"  
   });
 
   // and load the index.html of the app.

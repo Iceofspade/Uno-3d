@@ -239,24 +239,47 @@ export class GameLogic{
     private wildColor:null|string = null
     private drawRate:number = 0
     private boxColor:BABYLON.StandardMaterial
+    private arrowDirectionMesh:BABYLON.Mesh
+    private basePileStartingPos:number
     constructor(scene:BABYLON.Scene,queue:Queue){
         this.queue = queue
         this.pile = this.randomCardGenerator(2)
+        this.scene = scene
+        this.basePileStartingPos = -2.9
         this.pile.mesh.position = new BABYLON.Vector3(0,-2.9,0)
         this.pile.mesh.rotation =  new BABYLON.Vector3(Math.PI*0.5,0,0)
-        this.scene = scene
+
         this.drawBox = BABYLON.MeshBuilder.CreateBox("draw box",{width:2,height:0.8})
         this.drawBox.position = new BABYLON.Vector3(7.5,-2.5,-4)
         this.boxColor =  new BABYLON.StandardMaterial("all",this.scene)
         this.boxColor.diffuseColor = new BABYLON.Color3(54/255,54/255,222/255)
         this.boxColor.emissiveColor = new BABYLON.Color3(54/255,54/255,222/255)
         this.drawBox.material = this.boxColor;
+
+    this.arrowDirectionMesh = BABYLON.Mesh.CreateGround("Order Direction", 15, 15, 15, scene)
+    this.arrowDirectionMesh.position.y = -2.9
+    this.arrowDirectionMesh.rotation.x -= -Math.PI*2
+
+    let arrowTexture = new BABYLON.StandardMaterial("",scene)
+    arrowTexture.diffuseTexture = new BABYLON.Texture("../assets/img/Directional arrows.png", scene)
+    arrowTexture.emissiveTexture = new BABYLON.Texture("../assets/img/Directional arrows.png", scene)
+    arrowTexture.diffuseTexture.hasAlpha = true;
+    arrowTexture.transparencyMode = BABYLON.Material.MATERIAL_ALPHATESTANDBLEND;
+    arrowTexture.useAlphaFromDiffuseTexture = true;
+    arrowTexture.backFaceCulling = false
+    this.arrowDirectionMesh.material = arrowTexture
     };
-    cardHovereffect = (card:Card) => {
+    isPickable = (state:boolean) =>{
+    this.drawBox.isEnabled(state)
+    this.queue.printQueue()
+    .filter(player => player.isAI == false)
+    .forEach(player => player.hand.forEach(card => card.mesh.isEnabled(state)))
+    };
+    cardInteractionEffect = (card:Card) => {
         let mesh = card.mesh
        
                mesh.actionManager = new BABYLON.ActionManager(this.scene);
-               var cardHighlight = new BABYLON.HighlightLayer("hl1", this.scene);
+               let cardHighlight = new BABYLON.HighlightLayer("hl1", this.scene);
                cardHighlight.addMesh(mesh, BABYLON.Color3.White());
                cardHighlight.innerGlow = false
                cardHighlight.outerGlow = false
@@ -272,18 +295,18 @@ export class GameLogic{
                    }))
         //On right click for details on the card
                mesh.actionManager.registerAction(new BABYLON.ExecuteCodeAction(BABYLON.ActionManager.OnRightPickTrigger ,() =>{
-                       console.log("Picked card ",card)
+                       console.log("Picked card "+card.cardInfo.name,card)
                    }))
         //On duoble click 
                mesh.actionManager.registerAction(new BABYLON.ExecuteCodeAction(BABYLON.ActionManager.OnLeftPickTrigger, () =>{
                    // let rotationRandomiser = Math.floor(Math.random() * 4)*(Math.PI*0.25)
-                   let playableCheck = playableChecker(card,this.pile,wildColor);
+                   let playableCheck = playableChecker(card,this.pile,this.wildColor);
                    if(playableCheck.playable === true){
-                    //    pilePusher(card)
-                    //    specialCards(playableCheck.card.cardInfo.sign)
+                        this.pilePusher(card)
+                        this.specialCards(playableCheck.card.cardInfo)
                        console.log("Player played "+playableCheck.card.cardInfo.name)
                     //    colorShower().then(()=>{
-                        this.queue.movePlayerBack().then(()=>{/*turnSystem()*/})
+                        this.queue.movePlayerBack().then(()=>{this.turnSystem()})
                     //    })
                    return
                }   
@@ -292,13 +315,14 @@ export class GameLogic{
             
             
     };
-    drawBoxCollision = ()=>{
+    drawBoxCollision = (test:Function) =>{
     //Randomly draws a card and add it to a players hand when clicked----------------------------------------------------------------------------------------
 this.drawBox.actionManager = new BABYLON.ActionManager(this.scene);
 
 this.drawBox.actionManager.registerAction(new BABYLON.ExecuteCodeAction(BABYLON.ActionManager.OnPointerOutTrigger ,() =>{
     this.boxColor.diffuseColor = new BABYLON.Color3(54/255,54/255,222/255)
     this.boxColor.emissiveColor = new BABYLON.Color3(54/255,54/255,222/255)
+    test()
     }));
 this.drawBox.actionManager.registerAction(new BABYLON.ExecuteCodeAction(BABYLON.ActionManager.OnPointerOverTrigger ,() =>{
     this.boxColor.diffuseColor = new BABYLON.Color3(222/255,54/255,54/255)
@@ -308,7 +332,7 @@ this.drawBox.actionManager.registerAction(new BABYLON.ExecuteCodeAction(BABYLON.
     let draw = this.randomCardGenerator()
     this.queue.getCurrentPlayer().hand.unshift(draw)
     deckSorter(this.queue.getCurrentPlayer().hand,this.queue.getCurrentPlayer().place)
-    if (this.queue.getCurrentPlayer().place === 0) {this.cardHovereffect(draw)}  
+    if (this.queue.getCurrentPlayer().place === 0) {this.cardInteractionEffect(draw)}  
     }))
     };                
     randomCardGenerator = (falloff:number = 0)=>{
@@ -318,14 +342,14 @@ this.drawBox.actionManager.registerAction(new BABYLON.ExecuteCodeAction(BABYLON.
     };
     specialCards =(playedCard:Card["cardInfo"])=>{
         if (playedCard.sign === "wild") {
-            this.wildColor = wildCard()
+            this.wildColor = this.wildCard()
             // colorShower()
-            console.log("A wild has been played the color is "+wildColor)
+            console.log("A wild has been played the color is "+this.wildColor)
         }else if(playedCard.sign === "draw4"){
             this.drawRate+=4
-            this.wildColor = wildCard()
+            this.wildColor = this.wildCard()
             // colorShower()
-            console.log("A draw4 has been played the color is "+wildColor)
+            console.log("A draw4 has been played the color is "+this.wildColor)
         }else if(playedCard.sign === "draw2"){
             this.drawRate+=2
             console.log("A draw2 has been played")
@@ -335,7 +359,7 @@ this.drawBox.actionManager.registerAction(new BABYLON.ExecuteCodeAction(BABYLON.
         drawArry.push(this.randomCardGenerator())
     }if (this.queue.getCurrentPlayer().place === 0) {
         this.queue.getCurrentPlayer().hand.push(...drawArry)
-        drawArry.map((card)=>{this.cardHovereffect(card)})
+        drawArry.map((card)=>{this.cardInteractionEffect(card)})
         deckSorter(this.queue.getCurrentPlayer().hand)
         console.log(this.queue.getCurrentPlayer().name+" has drawn "+this.drawRate+" cards" )
         this.drawRate = 0
@@ -354,15 +378,15 @@ this.drawBox.actionManager.registerAction(new BABYLON.ExecuteCodeAction(BABYLON.
             console.log( "The turn order has been revesed!")
             this.queue.reverseOrder()
         }else{
-            wildColor = null
+            this.wildColor = null
         }
     }; 
     pilePusher = async (playedCard:Card)=>{
         this.queue.getCurrentPlayer().hand.splice(this.queue.getCurrentPlayer().hand.indexOf(playedCard),1)
-    let randomRotation = Math.random()*(2)+Math.PI
+        let randomRotation = Math.random()*(2)+Math.PI
      
-        playedCard.mesh.position = new BABYLON.Vector3(0,this.pile.mesh.position.y+=0.001,0)
-        playedCard.mesh.rotation =  new BABYLON.Vector3(Math.PI*0.5,0,0)
+        playedCard.mesh.position = new BABYLON.Vector3(0,this.basePileStartingPos+=0.001,0)
+        playedCard.mesh.rotation = new BABYLON.Vector3(Math.PI*0.5,0,randomRotation)
      
         let newpile = BABYLON.Mesh.MergeMeshes([playedCard.mesh,this.pile.mesh],true,true,undefined,true,true);
         newpile!.name = playedCard.cardInfo.name
@@ -405,29 +429,28 @@ this.drawBox.actionManager.registerAction(new BABYLON.ExecuteCodeAction(BABYLON.
          });
     };   
     turnSystem = () =>{
-        // colorShower()
-    
+        // colorShower()   
     if (this.queue.printQueue().filter(deck=> deck.hand.length === 0).length > 0) {
-            // gameOver()
+            this.gameOver()
             return
     }
     
     let currentPlayer = this.queue.getCurrentPlayer()
     //If it's the AI's turn then the AI acts
     if (currentPlayer.place !== 0) {
-        // disableHand(false)
-        // drawBox.isPickable = false
-       let cardCheckerLoop = currentPlayer.hand.map(card => playableChecker(card,this.pile,wildColor)).filter(card => card.playable)
+        this.isPickable(false)
+
+       let cardCheckerLoop = currentPlayer.hand.map(card => playableChecker(card,this.pile,this.wildColor)).filter(card => card.playable)
     
        if (cardCheckerLoop.length > 0) {
         setTimeout(() => {
             let playedCard = currentPlayer.hand[currentPlayer.hand.indexOf(cardCheckerLoop[0].card)]
             console.log("Unit played "+playedCard.cardInfo.name)
             this.pilePusher(playedCard)
-            // specialCards(playedCard.cardInfo.sign)
+            // this.specialCards(playedCard.cardInfo)
             this.queue.movePlayerBack().then(()=>this.turnSystem())
         }, 1000);
-        }else if(cardCheckerLoop.length === 0){
+        }else if(cardCheckerLoop.length <= 0){
             setTimeout(() => {
                 currentPlayer.hand.push(this.randomCardGenerator())
                 deckSorter(currentPlayer.hand,currentPlayer.place)
@@ -438,32 +461,36 @@ this.drawBox.actionManager.registerAction(new BABYLON.ExecuteCodeAction(BABYLON.
     }
     //Else let the player act
     else if(this.queue.getCurrentPlayer().place === 0){
-        // disableHand(true)
-        // drawBox.isPickable = true
+        this.isPickable(true)
         console.log("Waiting for input")
     }
     
     };
+    gameOver = ()=>{
+        let winner = this.queue.printQueue().filter( deck=> deck.hand.length === 0)
+        let VitoryText = new GUI.TextBlock("Vitory Text",`${winner[0].name} has won!`)
+    VitoryText.textVerticalAlignment = GUI.Control.VERTICAL_ALIGNMENT_TOP
+    VitoryText.fontSizeInPixels = 70
+    // advancedTexture.addControl(VitoryText)
+    };
+    wildCard = () => {
+        let colors = ["yellow", "red", "green", "blue"]
+        return colors[Math.floor(Math.random() * colors.length)]
+    }
 }
 //In case orginal deck is curropted use this to back it up.
 // fs.writeFile("./deck.json", JSON.stringify(deck, null, 4), function (err) {
 //     if (err) throw err;
 // }) 
-export let wildCard = () => {
-    let colors = ["yellow", "red", "green", "blue"]
-    return colors[Math.floor(Math.random() * colors.length)]
-}
-/**
+
+ /**
  * Checks if the card that was played is usable 
  * @param {*} playerCard The card that is being played
  * @param {*} facedUpCard The current card that is on the pile
  * @param {*} randColor Adds a matchable color when a wild or a draw 4 has been played
  */
-export let playableChecker = (playerCard:Card,facedUpCard:Card,randColor = null) => {
+export let playableChecker = (playerCard:Card,facedUpCard:Card,randColor:string|null = null) => {
 
-
-    
-   
     if (playerCard.cardInfo.sign === "wild") { //checks if a wild card was used    
        //randColor = wildCard()//change color to a random one.     
     //    console.log("wild")      
@@ -539,14 +566,16 @@ export let cardMaker = (scene:BABYLON.Scene,card:Card["cardInfo"]) =>{
 } 
 export class Units {
     readonly name:string
-    public hand:Card[] =[]
+    public hand:Card[] = []
     public place:number
     public state:playerState
-    constructor(name:string,place?:number,state?:playerState){
+    readonly isAI:boolean
+    constructor(name:string,place?:number,isAI?:boolean){
         this.name = name
         this.hand = []
         this.place = place == undefined ? 0 : place
-        this.state = state == undefined ? playerState.WAITING : state
+        this.state = playerState.WAITING 
+        this.isAI = isAI == undefined ? false : isAI
     }
 }
 export class Queue {
@@ -600,14 +629,5 @@ export let playedCardAnimation = async (mesh:BABYLON.Mesh)=>{
       playedCardAnim.setKeys(keys);
       mesh.animations = [];
       mesh.animations.push(playedCardAnim);
-}
-export let wildColor = null;
-
-export let gameOver = (queue:Queue,advancedTexture:GUI.AdvancedDynamicTexture)=>{
-    let winner = queue.printQueue().filter( deck=> deck.hand.length === 0)
-    let VitoryText = new GUI.TextBlock("Vitory Text",`${winner[0].name} has won!`)
-    VitoryText.textVerticalAlignment = GUI.Control.VERTICAL_ALIGNMENT_TOP
-    VitoryText.fontSizeInPixels = 70
-    advancedTexture.addControl(VitoryText)
 }
 
