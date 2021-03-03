@@ -3,6 +3,7 @@ import * as GUI from "babylonjs-gui"
 import * as loaders from "babylonjs-loaders"
 import { Scene } from "babylonjs/index"
 import sceenControl from "./renderer"  
+import sceneHander from "./renderer"
  export interface Card{
     mesh:BABYLON.Mesh,
     cardInfo:{name:string,
@@ -283,8 +284,10 @@ class ColorControles {
         this.mainContainer.addControl(this.yellowBox,0,3)
     let plane = BABYLON.Mesh.CreateGround("Color mesh",5,5,5,scene)
     plane.position.y = -2.95
+    plane.isEnabled(false)
     this.colorTexture = new BABYLON.StandardMaterial("Color texture",scene)
     this.colorTexture.alpha = 0
+    
     plane.material = this.colorTexture
  
 
@@ -661,6 +664,10 @@ this.drawBox.actionManager.registerAction(new BABYLON.ExecuteCodeAction(BABYLON.
         VitoryText.textVerticalAlignment = GUI.Control.VERTICAL_ALIGNMENT_TOP
         VitoryText.fontSizeInPixels = 70
         this.sceneUI.addControl(VitoryText)
+        setTimeout(() => {
+        this.queue.emptyQueue() 
+            sceneHander.setScene("MenuScene")
+        }, 5000);
     };  
     setColor = (color:string) =>{
         this.wildColor = color

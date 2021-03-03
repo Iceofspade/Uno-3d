@@ -29,7 +29,7 @@ tableImg.emissiveTexture = new BABYLON.Texture("../assets/img/background2.png", 
 ground.material = tableImg
 
 let gameLogic = new Logic.GameLogic(scene,queue,AdvancedDynamicTexture)
-gameLogic.drawBoxCollision(()=>{console.log(camera.position)})
+gameLogic.drawBoxCollision(()=>{/*console.log(camera.position)*/})
 
 //Game order Visual
 let player = new Logic.Units(gameSettings.playerName,AdvancedDynamicTexture)
@@ -74,9 +74,9 @@ let cam ={
 //     playerDisplayBox.linkWithMesh(player.playerNode)
 
 let botCount = gameSettings.botCount
-//Generate AI player
-for (let i = 1; i <= botCount; i++) {
-        let AIs = new Logic.Units(`Unit ${i}`,AdvancedDynamicTexture,i,true)
+
+let createBot = (place:number,name:string)=>{
+    let AIs = new Logic.Units(`${name} ${place}`,AdvancedDynamicTexture,place,true)
         // AIs.setNode(scene)
     for (let i = 0; i < gameSettings.startingCardCount; i++) {
         AIs.hand.push(gameLogic.randomCardGenerator())
@@ -84,6 +84,10 @@ for (let i = 1; i <= botCount; i++) {
  AIs.updateCount()
  gameLogic.deckSorter(AIs)
  queue.addPlayer(AIs)
+}
+//Generate AI player
+for (let i = 1; i <= botCount; i++) {
+    createBot(i,"Unit")
     }
 
 // Camera switching test

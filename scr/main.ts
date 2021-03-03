@@ -13,7 +13,8 @@ let createWindow = () => {
     nodeIntegration: true
     },
     icon:"assets/img/logo.ico",
-    title:"UNO"  
+    title:"UNO",
+    
   });
 
   // and load the index.html of the app.

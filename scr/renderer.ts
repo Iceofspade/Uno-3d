@@ -6,8 +6,6 @@ declare global {
 import * as BABYLON from "babylonjs"
 import * as GUI from "babylonjs-gui"
 import {readdirSync} from "fs"
-let windows = 0
-console.log("This is window "+(windows+=1))
 class SceneHandler{
     private sceneList: string[] =[];
     scene:(BABYLON.Scene|undefined);
@@ -51,7 +49,9 @@ class SceneHandler{
                 for (let scene of this.sceneList){
             let pulledScene = require(`./scenes/${scene}`)
             if(pulledScene.app.name === sceneName ){
-                this.scene = pulledScene.app.scene(this.engine,this.canvas) 
+                this.scene != undefined ?( this.scene.dispose(), this.scene = pulledScene.app.scene(this.engine,this.canvas) ) 
+                : this.scene = pulledScene.app.scene(this.engine,this.canvas) 
+                
                 break
             }else if (i === this.sceneList.length && this.scene === undefined){
                 console.error(`Attempted to load none existing scene.
