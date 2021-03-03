@@ -12,7 +12,8 @@ let createWindow = () => {
     webPreferences: {
     nodeIntegration: true
     },
-    icon:"../assets/img/Uno cards/back.png"  
+    icon:"assets/img/logo.ico",
+    title:"UNO"  
   });
 
   // and load the index.html of the app.
@@ -23,7 +24,7 @@ let createWindow = () => {
   }));
 
   // Open the DevTools.
-  win.webContents.openDevTools();
+  // win.webContents.openDevTools();
 
   // Emitted when the window is closed.
   win.on("closed", () => {
@@ -33,6 +34,7 @@ let createWindow = () => {
     win = null;
   });
 }
+
 // This method will be called when Electron has finished
 // initialization and is ready to create browser windows.
 // Some APIs can only be used after this event occurs.
@@ -53,5 +55,5 @@ app.on("activate", () => {
   // dock icon is clicked and there are no other windows open.
   if (win === null) {
     createWindow();
-  }
+   }
 });

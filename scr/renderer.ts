@@ -6,9 +6,8 @@ declare global {
 import * as BABYLON from "babylonjs"
 import * as GUI from "babylonjs-gui"
 import {readdirSync} from "fs"
-
-
-
+let windows = 0
+console.log("This is window "+(windows+=1))
 class SceneHandler{
     private sceneList: string[] =[];
     scene:(BABYLON.Scene|undefined);
@@ -46,17 +45,22 @@ class SceneHandler{
             return scene
             }
     // Setting the new scene to render
-        setScene =async (sceneName:string)=>{
+        setScene = async (sceneName:string)=>{
             this.loadScenes().then(()=>{
-            let i = this.sceneList.indexOf(sceneName+".js")
-            if (i === -1){
-    console.error("Attempted to load none existing scene")
-     this.scene = this.defaultScene()
-            }
-            else if(i>-1) {
-            let pull = require(`./scenes/${this.sceneList[i]}`)
-            this.scene = pull.app.scene(this.engine,this.canvas) 
-            }
+                let i = 1
+                for (let scene of this.sceneList){
+            let pulledScene = require(`./scenes/${scene}`)
+            if(pulledScene.app.name === sceneName ){
+                this.scene = pulledScene.app.scene(this.engine,this.canvas) 
+                break
+            }else if (i === this.sceneList.length && this.scene === undefined){
+                console.error(`Attempted to load none existing scene.
+                "${sceneName}" does not belong to any scene name.
+                Switching to default scene.`)
+                this.scene = this.defaultScene()
+                       }
+                i++
+                }
         })
         }
     // Start rendering of scene
@@ -68,13 +72,15 @@ class SceneHandler{
                 });                
         }
     }
-export let handler = new SceneHandler()
+    let handler = new SceneHandler()
+export default handler
     window.addEventListener('DOMContentLoaded', function(){
         handler.setCanvas(document.getElementById('renderCanvas') as HTMLCanvasElement).then(()=>{
             //Rename test to what ever you want the starting scene to be      
-            handler.setScene("game").then(()=>{
+            handler.setScene("MenuScene").then(()=>{
                     handler.initialize()
             })
+            
              window.addEventListener('resize', function(){
                 handler.engine ==null ?console.error("Cannot resize engine or null") :handler.engine.resize();
             });

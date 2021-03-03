@@ -5,14 +5,16 @@
   "main": "/app/main.js",
   "scripts": {
     "start": "electron ./app/main.js",
-    "dist": "electron-packager .",
+    "dist": "electron-packager . --icon=assets/img/logo.ico",
     "watchfiles": "tsc -w"
   },
   "author": "Spade",
   "license": "ISC",
   "dependencies": {
+    "@types/electron": "^1.6.10",
     "babylonjs": "^4.2.0",
     "babylonjs-gui": "^4.2.0",
+    "babylonjs-loaders": "^4.2.0",
     "babylonjs-materials": "^4.2.0",
     "babylonjs-viewer": "^4.2.0",
     "fs": "0.0.1-security"
