@@ -29,52 +29,9 @@ tableImg.emissiveTexture = new BABYLON.Texture("../assets/img/background2.png", 
 ground.material = tableImg
 
 let gameLogic = new Logic.GameLogic(scene,queue,AdvancedDynamicTexture)
-gameLogic.drawBoxCollision(()=>{/*console.log(camera.position)*/})
-
+ 
 //Game order Visual
 let player = new Logic.Units(gameSettings.playerName,AdvancedDynamicTexture)
-
- 
-//Start by getting the number of players and givening them cards
-
-//set's the number AI players
-//Generate Player
-
-for (let i = 0; i < gameSettings.startingCardCount; i++) {
-    let newCard = gameLogic.randomCardGenerator()
-    gameLogic.cardInteractionEffect(newCard)
-    player.hand.push(newCard)
-}
-player.updateCount()
-
-//For test only--------------------------------------------------------
-let newCard = Logic.cardMaker(scene,Logic.deck[(Logic.deck.length-1)])
-gameLogic.cardInteractionEffect(newCard)
-player.hand.push(newCard)
-//---------------------------------------------------------------------
-
-gameLogic.deckSorter(player)
-queue.addPlayer(player)
-let cam ={
-    postion:camera.position,
-    alpha:camera.alpha,
-    radius:camera.radius,
-    beta:camera.beta
-}
-// let playerDisplayBox = new GUI.Rectangle("red box")
-//     playerDisplayBox.background = "brown"
-//     playerDisplayBox.heightInPixels = 35
-//     playerDisplayBox.widthInPixels = 100
-//     playerDisplayBox.linkOffsetY = -100
-    
-// let cardCountText = new GUI.TextBlock("card count",`${player.name}: ${player.hand.length}`)
-// playerDisplayBox.addControl(cardCountText)
-
-//     AdvancedDynamicTexture.addControl(playerDisplayBox)
-//     playerDisplayBox.linkWithMesh(player.playerNode)
-
-let botCount = gameSettings.botCount
-
 let createBot = (place:number,name:string)=>{
     let AIs = new Logic.Units(`${name} ${place}`,AdvancedDynamicTexture,place,true)
         // AIs.setNode(scene)
@@ -85,6 +42,37 @@ let createBot = (place:number,name:string)=>{
  gameLogic.deckSorter(AIs)
  queue.addPlayer(AIs)
 }
+ 
+//Start by getting the number of players and givening them cards
+
+//set's the number AI players
+//Generate Player
+
+
+for (let i = 0; i < gameSettings.startingCardCount; i++) {
+    let newCard = gameLogic.randomCardGenerator()
+    gameLogic.cardInteractionEffect(newCard)
+    player.hand.push(newCard)
+}
+player.updateCount()
+
+//For test only--------------------------------------------------------
+// let newCard = Logic.cardMaker(scene,Logic.deck[(Logic.deck.length-1)])
+// gameLogic.cardInteractionEffect(newCard)
+// player.hand.push(newCard)
+//---------------------------------------------------------------------
+
+gameLogic.deckSorter(player)
+queue.addPlayer(player)
+let cam ={
+    postion:camera.position,
+    alpha:camera.alpha,
+    radius:camera.radius,
+    beta:camera.beta
+}
+
+let botCount = gameSettings.botCount
+
 //Generate AI player
 for (let i = 1; i <= botCount; i++) {
     createBot(i,"Unit")
@@ -117,7 +105,5 @@ let s = 1
 */
 gameLogic.turnSystem()
 
-
-// new Logic.ColorControles(AdvancedDynamicTexture)
 return scene
     }}

@@ -360,7 +360,8 @@ export class GameLogic extends  ColorControles{
     private drawBox:BABYLON.Mesh
     private wildColor:null|string = null
     private drawRate:number = 0
-    private boxColor:BABYLON.StandardMaterial
+    private boxTexture:BABYLON.StandardMaterial
+    private boxHightLigheter:BABYLON.HighlightLayer
     private arrowDirectionMesh:BABYLON.Mesh
     private basePileStartingPos:number
     private spinRate:number
@@ -373,18 +374,55 @@ export class GameLogic extends  ColorControles{
         this.pile.mesh.position = new BABYLON.Vector3(0,-2.9,0)
         this.pile.mesh.rotation =  new BABYLON.Vector3(Math.PI*0.5,0,0)
 
-        this.drawBox = BABYLON.MeshBuilder.CreateBox("draw box",{width:2,height:0.8})
+
+//------------------------------------ Draw box data ------------------------------------
+        let faceUV = new Array(3)
+        for (var i = 0; i < 6; i++) {
+            faceUV[i] = new BABYLON.Vector4(1/3, 0, (1+1)/3, 1/1);
+        }
+          faceUV[4] = new BABYLON.Vector4(0/3, 0, (0+1)/3, 1/1);
+          faceUV[2] = new BABYLON.Vector4(2/3, 0, (2+1)/3, 1/1);
+          faceUV[3] = new BABYLON.Vector4(2/3, 0, (2+1)/3, 1/1);
+
+        this.boxHightLigheter = new BABYLON.HighlightLayer("Draw box highlight",this.scene)
+        this.boxHightLigheter.innerGlow = false 
+        this.boxHightLigheter.outerGlow = false 
+
+        this.drawBox = BABYLON.MeshBuilder.CreateBox("draw box",{width:2,height:0.8,faceUV:faceUV})
         this.drawBox.position = new BABYLON.Vector3(2.5,-2.5,0)
         this.drawBox.rotation.y = Math.PI*0.5
-        this.boxColor =  new BABYLON.StandardMaterial("all",this.scene)
-        this.boxColor.diffuseColor = new BABYLON.Color3(54/255,54/255,222/255)
-        this.boxColor.emissiveColor = new BABYLON.Color3(54/255,54/255,222/255)
-        this.drawBox.material = this.boxColor;
-        this.spinRate = 0.01;
+        this.boxHightLigheter.addMesh(this.drawBox,new BABYLON.Color3(1,1,1))
+
+        this.boxTexture = new BABYLON.StandardMaterial("Card Texture",scene)
+        this.boxTexture.diffuseTexture = new BABYLON.Texture("../assets/img/deck texture.png", scene)
+        this.boxTexture.emissiveTexture = new BABYLON.Texture("../assets/img/deck texture.png", scene)
+        this.drawBox.material = this.boxTexture
+
+        this.drawBox.actionManager = new BABYLON.ActionManager(this.scene);
+        // On Hover Over
+        this.drawBox.actionManager.registerAction(new BABYLON.ExecuteCodeAction(BABYLON.ActionManager.OnPointerOutTrigger ,() =>{
+            this.boxHightLigheter.outerGlow = false 
+            }));
+        // On Hover Out
+        this.drawBox.actionManager.registerAction(new BABYLON.ExecuteCodeAction(BABYLON.ActionManager.OnPointerOverTrigger ,() =>{
+            this.boxHightLigheter.outerGlow = true
+            }));
+        // On Click
+        this.drawBox.actionManager.registerAction(new BABYLON.ExecuteCodeAction(BABYLON.ActionManager.OnPickDownTrigger ,() =>{
+            let draw = this.randomCardGenerator()
+            this.queue.getCurrentPlayer().hand.unshift(draw)
+            this.deckSorter(this.queue.getCurrentPlayer())
+            if (this.queue.getCurrentPlayer().place === 0) {
+                this.cardInteractionEffect(draw)
+                this.queue.getCurrentPlayer().updateCount()}  
+            }))
+//------------------------------------------------------------------------------------------------------------
+
+// ------------------------------------ Arrow spin Data ------------------------------------
+    this.spinRate = 0.01;
     this.arrowDirectionMesh = BABYLON.Mesh.CreateGround("Order Direction", 15, 15, 15, scene)
     this.arrowDirectionMesh.position.y = -2.9
     this.arrowDirectionMesh.rotation.x -= -Math.PI*2
-
     this.scene.registerAfterRender(()=>{
         this.arrowDirectionMesh.rotation.y-=this.spinRate
     })
@@ -397,6 +435,9 @@ export class GameLogic extends  ColorControles{
     arrowTexture.useAlphaFromDiffuseTexture = true;
     arrowTexture.backFaceCulling = false
     this.arrowDirectionMesh.material = arrowTexture
+//--------------------------------------------------------------------------------------------
+
+//-------------------------------------------- Color picking data ------------------------------------------------
 
     this.redBox.onPointerDownObservable.add(()=>{
         this.showPicked("red")
@@ -419,6 +460,7 @@ export class GameLogic extends  ColorControles{
             this.queue.movePlayerBack().then(()=>{ this.turnSystem();this.restBoxes()})
         });
     };
+//--------------------------------------------------------------------------------------------
 
     
     isPickable = (state:boolean) =>{
@@ -473,29 +515,7 @@ export class GameLogic extends  ColorControles{
                        }));    
             
             
-    };
-    drawBoxCollision = (test:Function) =>{
-    //Randomly draws a card and add it to a players hand when clicked----------------------------------------------------------------------------------------
-this.drawBox.actionManager = new BABYLON.ActionManager(this.scene);
-
-this.drawBox.actionManager.registerAction(new BABYLON.ExecuteCodeAction(BABYLON.ActionManager.OnPointerOutTrigger ,() =>{
-    this.boxColor.diffuseColor = new BABYLON.Color3(54/255,54/255,222/255)
-    this.boxColor.emissiveColor = new BABYLON.Color3(54/255,54/255,222/255)
-    test()
-    }));
-this.drawBox.actionManager.registerAction(new BABYLON.ExecuteCodeAction(BABYLON.ActionManager.OnPointerOverTrigger ,() =>{
-    this.boxColor.diffuseColor = new BABYLON.Color3(222/255,54/255,54/255)
-    this.boxColor.emissiveColor = new BABYLON.Color3(222/255,54/255,54/255)
-    }));
-this.drawBox.actionManager.registerAction(new BABYLON.ExecuteCodeAction(BABYLON.ActionManager.OnPickDownTrigger ,() =>{
-    let draw = this.randomCardGenerator()
-    this.queue.getCurrentPlayer().hand.unshift(draw)
-    this.deckSorter(this.queue.getCurrentPlayer())
-    if (this.queue.getCurrentPlayer().place === 0) {
-        this.cardInteractionEffect(draw)
-        this.queue.getCurrentPlayer().updateCount()}  
-    }))
-    };                
+    };               
     randomCardGenerator = (falloff:number = 0)=>{
         let cardPicker = Math.floor(Math.random()*((deck.length-1)-falloff)) 
         let set = cardMaker(this.scene,deck[cardPicker])
