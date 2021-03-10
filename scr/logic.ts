@@ -1,9 +1,13 @@
 import * as BABYLON  from "babylonjs"
 import * as GUI from "babylonjs-gui"
 import * as loaders from "babylonjs-loaders"
+import fs from "fs"
 import { Scene } from "babylonjs/index"
 import sceenControl from "./renderer"  
 import sceneHander from "./renderer"
+import gameSettings from "./gameSettings.json"
+import { Vector3 } from "babylonjs"
+
  export interface Card{
     mesh:BABYLON.Mesh,
     cardInfo:{name:string,
@@ -248,40 +252,30 @@ class ColorControles {
         this.mainContainer = new GUI.Grid("color holders")
         this.mainContainer.addColumnDefinition(100,true)
         this.mainContainer.addColumnDefinition(100,true)
-        this.mainContainer.addColumnDefinition(100,true)
-        this.mainContainer.addColumnDefinition(100,true)
+        this.mainContainer.addRowDefinition(100,true)
+        this.mainContainer.addRowDefinition(100,true)
         this.mainContainer.isVisible = false
-        this.mainContainer.widthInPixels = 400
-        this.mainContainer.heightInPixels = 100
+        this.mainContainer.widthInPixels = 200
+        this.mainContainer.heightInPixels = 200
+        this.mainContainer.isHighlighted = true
         SceneUI.addControl(this.mainContainer)
 
         this.redBox = new GUI.Button("red box")
         this.redBox.background = "red"
-        this.redBox.heightInPixels = 50
-        this.redBox.verticalAlignment = GUI.Control.VERTICAL_ALIGNMENT_BOTTOM
-        
         this.mainContainer.addControl(this.redBox,0,0)
 
         this.blueBox = new GUI.Button("blue box")
         this.blueBox.background = "blue"
-        this.blueBox.heightInPixels = 50
-        this.blueBox.verticalAlignment = GUI.Control.VERTICAL_ALIGNMENT_BOTTOM
-        
-        this.mainContainer.addControl(this.blueBox,0,1)
+        this.mainContainer.addControl(this.blueBox,1,0)
 
         this.greenBox = new GUI.Button("green box")
         this.greenBox.background = "green"
-        this.greenBox.heightInPixels = 50
-        this.greenBox.verticalAlignment = GUI.Control.VERTICAL_ALIGNMENT_BOTTOM
-        
-        this.mainContainer.addControl(this.greenBox,0,2)
+        this.mainContainer.addControl(this.greenBox,0,1)
 
         this.yellowBox = new GUI.Button("yellow box")
         this.yellowBox.background = "yellow"
-        this.yellowBox.heightInPixels = 50
-        this.yellowBox.verticalAlignment = GUI.Control.VERTICAL_ALIGNMENT_BOTTOM
-        
-        this.mainContainer.addControl(this.yellowBox,0,3)
+        this.mainContainer.addControl(this.yellowBox,1,1)
+
     let plane = BABYLON.Mesh.CreateGround("Color mesh",5,5,5,scene)
     plane.position.y = -2.95
     plane.isEnabled(false)
@@ -298,25 +292,21 @@ setIsVisable = (state:boolean)=>{
 showPicked =  async (color:string)=>{
     switch (color) {
         case "red":
-        this.redBox.height = 1
         this.pickedColor = "red"
         this.colorTexture.emissiveColor = new BABYLON.Color3(1,0,0)
         this.colorTexture.alpha = 1
             break;
         case "blue":
-        this.blueBox.height = 1
         this.pickedColor = "blue"
         this.colorTexture.emissiveColor = new BABYLON.Color3(0,0,1)
         this.colorTexture.alpha = 1
             break
         case "green":
-        this.greenBox.height = 1
         this.pickedColor = "green"
         this.colorTexture.emissiveColor = new BABYLON.Color3(0,1,0)
         this.colorTexture.alpha = 1
             break
         case "yellow":
-        this.yellowBox.height = 1
         this.pickedColor = "yellow"
         this.colorTexture.emissiveColor = new BABYLON.Color3(1,1,0)
         this.colorTexture.alpha = 1
@@ -330,10 +320,6 @@ showPicked =  async (color:string)=>{
 
     }
 restBoxes = ()=>{
-    this.redBox.heightInPixels = 50
-    this.blueBox.heightInPixels = 50
-    this.greenBox.heightInPixels = 50
-    this.yellowBox.heightInPixels = 50
     this.setIsVisable(false)
     setTimeout(() => {
     this.colorTexture.diffuseColor = new BABYLON.Color3(72/255, 72/255, 72/255)
@@ -342,7 +328,7 @@ restBoxes = ()=>{
     }, 3000);
     
     }
-isColorPickable =(state:boolean)  =>{
+isColorPickable = (state:boolean)  =>{
     this.redBox.isPointerBlocker = state
     this.blueBox.isPointerBlocker = state
     this.greenBox.isPointerBlocker = state
@@ -353,7 +339,7 @@ randomColor = () => {
     return colors[Math.floor(Math.random() * colors.length)]
 };
 }
-export class GameLogic extends  ColorControles{
+export class GameLogic extends ColorControles{
     public queue:Queue
     public pile:Card
     private scene:BABYLON.Scene
@@ -365,6 +351,11 @@ export class GameLogic extends  ColorControles{
     private arrowDirectionMesh:BABYLON.Mesh
     private basePileStartingPos:number
     private spinRate:number
+    private cardPlayedSound:BABYLON.Sound
+    private drawnCardSound:BABYLON.Sound 
+    private unoTrigger:GUI.Button
+    private unoButtonImage:GUI.Image
+    private musicControles:musicControle
     constructor(scene:BABYLON.Scene,queue:Queue,sceneUI:GUI.AdvancedDynamicTexture){
         super(sceneUI,scene)
         this.queue = queue
@@ -374,8 +365,13 @@ export class GameLogic extends  ColorControles{
         this.pile.mesh.position = new BABYLON.Vector3(0,-2.9,0)
         this.pile.mesh.rotation =  new BABYLON.Vector3(Math.PI*0.5,0,0)
 
+//                         ----------| Sound |------------
+this.musicControles = new musicControle(this.scene)
+this.musicControles.soundTrack.soundCollection[this.musicControles.currentTrack]
+this.cardPlayedSound = loadAudio(this.scene,"drawn_card.wav") 
+this.drawnCardSound = loadAudio(this.scene,"played_card.wav")
+//------------------------------------| Draw box data |------------------------------------
 
-//------------------------------------ Draw box data ------------------------------------
         let faceUV = new Array(3)
         for (var i = 0; i < 6; i++) {
             faceUV[i] = new BABYLON.Vector4(1/3, 0, (1+1)/3, 1/1);
@@ -418,7 +414,7 @@ export class GameLogic extends  ColorControles{
             }))
 //------------------------------------------------------------------------------------------------------------
 
-// ------------------------------------ Arrow spin Data ------------------------------------
+// ------------------------------------ Arrow spin Control ------------------------------------
     this.spinRate = 0.01;
     this.arrowDirectionMesh = BABYLON.Mesh.CreateGround("Order Direction", 15, 15, 15, scene)
     this.arrowDirectionMesh.position.y = -2.9
@@ -437,32 +433,78 @@ export class GameLogic extends  ColorControles{
     this.arrowDirectionMesh.material = arrowTexture
 //--------------------------------------------------------------------------------------------
 
-//-------------------------------------------- Color picking data ------------------------------------------------
-
+//-------------------------------------------- Color picking events ------------------------------------------------
     this.redBox.onPointerDownObservable.add(()=>{
         this.showPicked("red")
         this.wildColor = this.pickedColor
-        this.queue.movePlayerBack().then(()=>{this.turnSystem();this.restBoxes()})
+        this.queue.movePlayerBack().then(()=>{this.turnSystem();this.setIsVisable(false)})
         });
     this.blueBox.onPointerDownObservable.add(()=>{
             this.showPicked("blue")
             this.wildColor = this.pickedColor
-            this.queue.movePlayerBack().then(()=>{this.turnSystem();this.restBoxes()})
+            this.queue.movePlayerBack().then(()=>{this.turnSystem();this.setIsVisable(false)})
         });
     this.greenBox.onPointerDownObservable.add(()=>{
             this.showPicked("green")
             this.wildColor = this.pickedColor
-            this.queue.movePlayerBack().then(()=>{this.turnSystem();this.restBoxes()})
+            this.queue.movePlayerBack().then(()=>{this.turnSystem();this.setIsVisable(false)})
         });
     this.yellowBox.onPointerDownObservable.add(()=>{
             this.showPicked("yellow")
             this.wildColor = this.pickedColor
-            this.queue.movePlayerBack().then(()=>{ this.turnSystem();this.restBoxes()})
+            this.queue.movePlayerBack().then(()=>{ this.turnSystem();this.setIsVisable(false)})
         });
-    };
+//---------------------------------------------------------------------------------------------------------------------
+    this.unoTrigger = new GUI.Button("Uno trigger")
+    this.unoTrigger.thickness = 0
+    this.unoTrigger.widthInPixels = 150
+    this.unoTrigger.heightInPixels = 125
+    this.unoTrigger.verticalAlignment = GUI.Control.VERTICAL_ALIGNMENT_BOTTOM
+    this.unoTrigger.horizontalAlignment = GUI.Control.HORIZONTAL_ALIGNMENT_RIGHT
+    this.unoTrigger.topInPixels = -50
+    this.unoTrigger.leftInPixels = -50
+    this.unoTrigger.isEnabled = false
+    this.unoTrigger.isVisible = false
+    this.sceneUI.addControl(this.unoTrigger)
+
+this.unoTrigger.onPointerDownObservable.add(()=>{
+    this.onUnoCall(true)
+    this.unoTrigger.isEnabled = false
+    this.unoTrigger.isVisible = false
+})
+
+    this.unoButtonImage =  new GUI.Image("uno button","../assets/img/uno button.png")
+    this.unoTrigger.addControl(this.unoButtonImage)
 //--------------------------------------------------------------------------------------------
 
-    
+    };
+    setUnoButton = (state:boolean) =>{
+        this.unoButtonImage.isVisible = state
+        this.unoTrigger.isEnabled = state
+    };
+    onUnoCall = (byPlayer?:boolean) =>{
+        let callers = this.queue.printQueue().filter(unit =>{ 
+            if(unit.isAI === true && unit !== this.queue.getCurrentPlayer()){
+                return true
+            }
+            return false
+    })
+    let callUno = 0
+    callers.forEach(() =>{
+        let unoCallchance = Math.round(Math.random()*10)
+        if (unoCallchance >= 8){
+            callUno =+1
+        }
+    })
+    if ( callUno >= 1 || byPlayer === true ) {
+        this.queue.getCurrentPlayer().hand.push(this.randomCardGenerator())
+        this.queue.getCurrentPlayer().hand.push(this.randomCardGenerator())
+        this.deckSorter(this.queue.getCurrentPlayer())
+        this.queue.getCurrentPlayer().playerNode
+        this.queue.getCurrentPlayer().unoCalledBox.isVisible = false
+    }
+        
+    }
     isPickable = (state:boolean) =>{
     this.drawBox.isPickable = state
     this.queue.printQueue()
@@ -506,7 +548,11 @@ export class GameLogic extends  ColorControles{
                             break;
 
                             default:
-                            this.queue.movePlayerBack().then(()=>{this.turnSystem()})
+                            this.queue.movePlayerBack().then(()=>{this.turnSystem();
+                                this.restBoxes()
+                                this.unoTrigger.isEnabled = false
+                                this.unoTrigger.isVisible = false
+                            })
                             break;
                        }
                    return
@@ -519,37 +565,37 @@ export class GameLogic extends  ColorControles{
     randomCardGenerator = (falloff:number = 0)=>{
         let cardPicker = Math.floor(Math.random()*((deck.length-1)-falloff)) 
         let set = cardMaker(this.scene,deck[cardPicker])
+        if (this.drawnCardSound !== undefined) {
+            this.drawnCardSound.play()
+        }
+        // console.log( this.drawnCardSound)
         return set
     };
     specialCards = (playedCard:Card["cardInfo"])=>{
         if (playedCard.sign === "wild") {
             let newColor = this.randomColor() 
-            this.setIsVisable(true)
-
             if(this.queue.getCurrentPlayer().isAI === true){
             this.setColor(newColor)
             this.showPicked(newColor)
             this.isColorPickable(false)
             this.wildColor = this.pickedColor
-            this.restBoxes()
         }
             else{
-                
+                this.setIsVisable(true)
                 this.isColorPickable(true)
             }
             console.log("A wild card has been played the color is now "+this.wildColor)
         }else if(playedCard.sign === "draw4"){
             this.drawRate+=4
             let newColor = this.randomColor() 
-            this.setIsVisable(true)
             if(this.queue.getCurrentPlayer().isAI === true){
             this.setColor(newColor)
             this.showPicked(newColor)
             this.isColorPickable(false)
             this.wildColor = this.pickedColor
-            this.restBoxes()
             }
             else{
+                this.setIsVisable(true)
                 this.isColorPickable(true)
             }
             console.log("A draw4 has been played the color is "+this.wildColor)
@@ -598,7 +644,9 @@ export class GameLogic extends  ColorControles{
             cardInfo:playedCard.cardInfo
         }
         this.deckSorter(this.queue.getCurrentPlayer())
-    
+       if (this.cardPlayedSound !== undefined) {
+           this.cardPlayedSound.play()
+        }
     };
     /**
    * Sorts the cards and realign's them back to there space
@@ -640,13 +688,30 @@ export class GameLogic extends  ColorControles{
          });
     };   
     turnSystem = () =>{
-    this.queue.printQueue().forEach(player => player.updateCount())
 
+ 
+    this.queue.printQueue().forEach(player => {
+        player.updateCount()
+        player.playerDisplayBox.background = "brown"
+   if (player === this.queue.getCurrentPlayer()){
+    player.playerDisplayBox.background = "green"
+   }
+    })
+    
     if (this.queue.printQueue().filter(deck=> deck.hand.length === 0).length > 0) {
             this.gameOver()
             return
     }
     
+    // this.queue.printQueue().forEach( unit => {
+    //     if(unit !== this.queue.getCurrentPlayer()){
+    //         if(unit.hand.length === 1){
+    //             this.unoTrigger.isEnabled = true
+    //             this.unoTrigger.isVisible = true
+    //             this.onUnoCall() 
+    //         }
+    //     }
+    // })
     let currentPlayer = this.queue.getCurrentPlayer()
     //If it's the AI's turn then the AI acts
     if (currentPlayer.place !== 0) {
@@ -660,7 +725,11 @@ export class GameLogic extends  ColorControles{
             console.log("Unit played "+playedCard.cardInfo.name)
             this.pilePusher(playedCard)
             this.specialCards(playedCard.cardInfo)
-            this.queue.movePlayerBack().then(()=>this.turnSystem())
+            this.queue.movePlayerBack().then(()=>{
+                this.turnSystem();
+                this.restBoxes()
+                /*this.unoTrigger.isEnabled = false
+            this.unoTrigger.isVisible = false*/})
         }, 1000);
         }else if(cardCheckerLoop.length <= 0){
             setTimeout(() => {
@@ -686,12 +755,56 @@ export class GameLogic extends  ColorControles{
         this.sceneUI.addControl(VitoryText)
         setTimeout(() => {
         this.queue.emptyQueue() 
+        this.musicControles.soundTrack.soundCollection.forEach(sound => sound.dispose())
             sceneHander.setScene("MenuScene")
         }, 5000);
     };  
     setColor = (color:string) =>{
         this.wildColor = color
     };
+}
+export class 
+musicControle{
+   public volume:number
+   public currentTrack:number 
+   public soundTrack:BABYLON.SoundTrack
+    constructor(scene:BABYLON.Scene,){
+        this.volume =gameSettings.volumeLevel*0.6
+        this.soundTrack = this.loadAllMusic(scene)
+        this.currentTrack = Math.round(Math.random()*this.soundTrack.soundCollection.length-1)
+        // let db = new BABYLON.Analyser(scene)
+        // playList.connectToAnalyser(db)
+        // db.drawDebugCanvas() 
+        // console.log( db.getByteFrequencyData())
+        this.soundTrack.soundCollection[this.currentTrack].autoplay = true
+
+        this.soundTrack.soundCollection.forEach(track =>{
+            this.soundTrack.soundCollection[this.currentTrack].autoplay = true
+            track.onEndedObservable.add(()=>{
+                this.currentTrack++
+                if (this.currentTrack >= this.soundTrack.soundCollection.length) {
+                    this.currentTrack = 0
+                }         
+                this.soundTrack.soundCollection[this.currentTrack].play()
+            })
+        })
+    }
+    loadAllMusic = (scene:BABYLON.Scene)=>{
+        let tracks = fs.readdirSync("./assets/audio/music/").filter(d => d.endsWith(".mp3"||".wav"))
+        let soundTrack = new BABYLON.SoundTrack(scene,{
+            volume:0.5,
+        })
+        tracks.map(async track => {
+         soundTrack.addSound(new BABYLON.Sound("test music",`../assets/audio/music/${track}`,scene,null,{
+            // loop:true,
+            volume:0.5,
+            // autoplay:true
+        }))
+
+        })
+        return soundTrack
+
+    }
 }
 //In case orginal deck is currupted use this to back it up.
 // fs.writeFile("./deck.json", JSON.stringify(deck, null, 4), function (err) {
@@ -754,27 +867,40 @@ export class Units {
     public playerNode:BABYLON.TransformNode
     readonly isAI:boolean
     public cardCountText:GUI.TextBlock
+    public unoCalledBox:GUI.Image
+    public playerDisplayBox:GUI.Rectangle
     constructor(name:string,UI:GUI.AdvancedDynamicTexture,place?:number,isAI?:boolean){
         this.name = name
         this.hand = []
         this.place = place == undefined ? 0 : place
          this.isAI = isAI == undefined ? false : isAI
         this.playerNode = new BABYLON.TransformNode(`Player ${this.name} node`)
-        let playerDisplayBox = new GUI.Rectangle("red box")
-        playerDisplayBox.background = "brown"
-        playerDisplayBox.heightInPixels = 35
-        playerDisplayBox.widthInPixels = 100
-        playerDisplayBox.linkOffsetY = -100
-        UI.addControl(playerDisplayBox)
+       this.playerDisplayBox = new GUI.Rectangle("red box")
+        this.playerDisplayBox.background = "brown"
+        this.playerDisplayBox.heightInPixels = 35
+        this.playerDisplayBox.widthInPixels = 100
+        this.playerDisplayBox.linkOffsetY = -100
+        UI.addControl(this.playerDisplayBox)
         this.cardCountText = new GUI.TextBlock("card count",`${this.name}: ${this.hand.length}`)
-        playerDisplayBox.addControl(this.cardCountText)
-        playerDisplayBox.linkWithMesh(this.playerNode)
+        this.playerDisplayBox.addControl(this.cardCountText)
+        this.playerDisplayBox.linkWithMesh(this.playerNode)
         
+        this.unoCalledBox = new GUI.Image("Called box","../assets/img/uno draw.png")
+        this.unoCalledBox.widthInPixels = 150
+        this.unoCalledBox.heightInPixels = 100
+        this.unoCalledBox.linkOffsetYInPixels = -150
+        this.unoCalledBox.isVisible = false
+        UI.addControl(this.unoCalledBox)
+        this.unoCalledBox.linkWithMesh(this.playerNode)
     }
     updateCount = ()=>{
         this.cardCountText.text = `${this.name}: ${this.hand.length}`
     }
 }
+let loadAudio = (scene:BABYLON.Scene,file:string)=>{
+    return new BABYLON.Sound("test music",`../assets/audio/SFX effects/${file}`,scene,null,{volume: 10})
+}
+
 export class Queue {
     private players:Units[]
     constructor() {

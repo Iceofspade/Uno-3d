@@ -1,5 +1,6 @@
 {
-    "playerName": "Spade",
+    "playerName": "Shamoya",
     "botCount": 3,
-    "startingCardCount": 1
+    "startingCardCount": 7,
+    "volumeLevel": 0.8
 }

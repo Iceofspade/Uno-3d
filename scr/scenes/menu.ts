@@ -11,25 +11,46 @@ export let app ={
     let scene = new  BABYLON.Scene(engine)
     let camera = new BABYLON.ArcRotateCamera("Camera1",1.5,0,10,BABYLON.Vector3.Zero(),scene)
     camera.attachControl(true)
-    let menuUI = GUI.AdvancedDynamicTexture.CreateFullscreenUI("UI")
+
+let menuMusic = new BABYLON.Sound("Menue music",`../assets/audio/music/Evence - Falling Ninety9Lives release.mp3`,scene,null,{autoplay:true,volume: gameSettings.volumeLevel*0.6, loop:true})
+
+let menuUI = GUI.AdvancedDynamicTexture.CreateFullscreenUI("UI")
 
 let menuBackground = new GUI.Rectangle("Background UI")
 menuBackground.background = "grey"
 menuUI.addControl(menuBackground)
+let backgroundTextutre = new GUI.Image("Background Texture","../assets/img/menu background.png")
+menuBackground.addControl(backgroundTextutre)
+
+let title = new GUI.TextBlock("Game title","UNO")
+title.fontSize = 180
+title.textVerticalAlignment = GUI.Control.VERTICAL_ALIGNMENT_TOP
+title.fontFamily = "algerian"
+menuBackground.addControl(title)
+
+let date = new Date()
+ 
+if(date.getDate() === 10 && date.getMonth()+1 === 3){
+let subTitle = new GUI.TextBlock("Game title","Happy Birthday Monkey!")
+subTitle.fontSize = 100
+subTitle.textVerticalAlignment = GUI.Control.VERTICAL_ALIGNMENT_TOP
+subTitle.topInPixels = 200
+subTitle.fontFamily = "algerian"
+menuBackground.addControl(subTitle)
+}
 
 let stack = new GUI.StackPanel("Button stack")
 stack.widthInPixels = 180
 stack.heightInPixels = 300
 stack.isVertical = true
-stack.isHighlighted = true
+// stack.isHighlighted = true
 stack.verticalAlignment = GUI.Control.VERTICAL_ALIGNMENT_BOTTOM
 menuBackground.addControl(stack)
-
 
 let optionsBoxContainer = new GUI.Rectangle("options Box Container")
 optionsBoxContainer.width = 0.3
 optionsBoxContainer.height = 0.8
-optionsBoxContainer.background = "brown"
+optionsBoxContainer.background = "#A44800"
 optionsBoxContainer.cornerRadius = 0.5
 optionsBoxContainer.isVisible = false
 menuBackground.addControl(optionsBoxContainer)
@@ -38,13 +59,14 @@ let optionsBox = new GUI.StackPanel("Options menu")
 optionsBox.width = 0.9
 optionsBox.height = 0.8
 optionsBox.isVertical = true
+optionsBox.fontFamily = "Rockwell"
 optionsBoxContainer.addControl(optionsBox)
-
 
 let block = new GUI.Rectangle("Name input block")
 block.heightInPixels = 30
 block.widthInPixels = 250
 block.thickness = 0
+block.fontFamily = "Rockwell"
 optionsBox.addControl(block)
 
 let nameInputText = new GUI.TextBlock("Name input text","Name")
@@ -80,7 +102,7 @@ let subButtonMaker = (name:string):GUI.Button=>{
     gameStateStack.addControl(button)
     
     let buttonText = new GUI.TextBlock(name+" text",name)
-    buttonText
+    buttonText.fontFamily = "Rockwell"
     button.addControl(buttonText)
     
     return button
@@ -94,25 +116,36 @@ button.paddingBottomInPixels = 10
 stack.addControl(button)
 
 let buttonText = new GUI.TextBlock(name+" text",name)
-buttonText
+buttonText.fontFamily = "Rockwell"
+
 button.addControl(buttonText)
 
 return button
-}
+    }
 let sliderMaker = (name:string,min:number,max:number) =>{
     let sliderBox = new GUI.Rectangle(name+" box")
     sliderBox.width = 0.9
     sliderBox.heightInPixels = 80
     sliderBox.paddingBottomInPixels = 15
     sliderBox.paddingTopInPixels = 15
+    sliderBox.background = "#C20015"
+    sliderBox.fontFamily = "Rockwell"
     optionsBox.addControl(sliderBox)
 
-    let SliderText = new GUI.TextBlock(name+" text",name)
-    SliderText.textVerticalAlignment = GUI.Control.VERTICAL_ALIGNMENT_TOP
-    sliderBox.addControl(SliderText)
+    let sliderName = new GUI.TextBlock(name+" text",name)
+    sliderName.textVerticalAlignment = GUI.Control.VERTICAL_ALIGNMENT_TOP
+    sliderName.textHorizontalAlignment = GUI.Control.HORIZONTAL_ALIGNMENT_LEFT
+    sliderBox.addControl(sliderName)
+
+    let sliderText = new GUI.TextBlock(name+" text",`${1}`)
+    sliderText.textVerticalAlignment = GUI.Control.VERTICAL_ALIGNMENT_TOP
+    sliderText.textHorizontalAlignment = GUI.Control.HORIZONTAL_ALIGNMENT_RIGHT
+    sliderBox.addControl(sliderText)
 
 
     let slider = new GUI.Slider(name+" slider")
+    slider.background = "#CF9693"
+    slider.color = "#E82518"
     slider.verticalAlignment = GUI.Control.VERTICAL_ALIGNMENT_BOTTOM
     slider.height = 0.4
     slider.value = 1
@@ -120,28 +153,34 @@ let sliderMaker = (name:string,min:number,max:number) =>{
     slider.minimum = min
     slider.step = 1
     sliderBox.addControl(slider)
-    SliderText.text = `${name}${slider.value}`
+    sliderText.text = `${slider.value}`
    
 return {slider,
-        SliderText}
+        SliderText: sliderText}
 }
 
-let botCount = sliderMaker("Number of Bots: ",1,3)
+let musicVolume = sliderMaker("Volume",0,100)
+musicVolume.slider.value = gameSettings.volumeLevel*100
+musicVolume.SliderText.text = `${musicVolume.slider.value}`
+musicVolume.slider.onValueChangedObservable.add(()=>{
+
+    musicVolume.SliderText.text = `${musicVolume.slider.value}`
+    gameSettings.volumeLevel = musicVolume.slider.value/100
+    menuMusic.setVolume((musicVolume.slider.value/100)*0.6)
+})
+let botCount = sliderMaker("Number of Bots ",1,3)
 botCount.slider.value = gameSettings.botCount
-botCount.SliderText.text = `Number of Bots: ${botCount.slider.value}`
+botCount.SliderText.text = `${botCount.slider.value}`
 botCount.slider.onValueChangedObservable.add(()=>{
-    botCount.SliderText.text = `number of Bots: ${botCount.slider.value}`
+    botCount.SliderText.text = `${botCount.slider.value}`
 })
 
-let startingHandSize = sliderMaker("Number of starting cards: ",1,99)
+let startingHandSize = sliderMaker("Starting cards ",1,99)
 startingHandSize.slider.value = gameSettings.startingCardCount
-startingHandSize.SliderText.text = `Number of starting cards: ${startingHandSize.slider.value}`
+startingHandSize.SliderText.text = `${startingHandSize.slider.value}`
 startingHandSize.slider.onValueChangedObservable.add(()=>{
-    startingHandSize.SliderText.text = `Number of starting cards: ${startingHandSize.slider.value}`
+    startingHandSize.SliderText.text = `${startingHandSize.slider.value}`
 })
-
-
-
 
 
 //------- Save and quit buttonss -------
@@ -151,10 +190,14 @@ defaultSetting.background = "grey"
 defaultSetting.onPointerDownObservable.add(()=>{
     gameSettings.botCount = 3
     gameSettings.startingCardCount = 7
+    gameSettings.volumeLevel = 0.5
     botCount.slider.value = 3
     startingHandSize.slider.value = 7
-    botCount.SliderText.text = `Number of Bots: ${3}`
-    startingHandSize.SliderText.text = `Number of starting cards: ${7}`
+    botCount.SliderText.text = `${3}`
+    startingHandSize.SliderText.text = `${7}`
+    musicVolume.SliderText.text = `${50}`
+    musicVolume.slider.value = 50
+
     optionsBoxContainer.isVisible = false
     fs.writeFile("./scr/gameSettings.json", JSON.stringify(gameSettings, null, 4), function (err) {
         if (err) throw err;
@@ -166,6 +209,7 @@ saveButton.background = "green"
 saveButton.onPointerDownObservable.add(()=>{
     gameSettings.botCount = botCount.slider.value
     gameSettings.startingCardCount = startingHandSize.slider.value
+    gameSettings.volumeLevel = musicVolume.slider.value/100
     gameSettings.playerName = nameInput.text
     optionsBoxContainer.isVisible = false
 
@@ -183,11 +227,12 @@ cancelButton.background = "red"
     startingHandSize.SliderText.text = `Number of starting cards: ${startingHandSize.slider.value}`
     optionsBoxContainer.isVisible = false
 })
-//-----------------------------------------------
 
+//-----------------------------------------------
 const START = mainButtonMaker("Start")
 START.onPointerDownObservable.add(()=>{
     sceenControl.setScene("GameScene")
+    menuMusic.dispose()
 })
 const OPTIONS = mainButtonMaker("Options")
 OPTIONS.onPointerDownObservable.add(()=>{

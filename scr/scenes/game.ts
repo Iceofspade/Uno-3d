@@ -3,20 +3,68 @@ import * as GUI from "babylonjs-gui"
 import * as loaders from "babylonjs-loaders"
 import * as Logic from "../logic"
 import gameSettings from "../gameSettings.json"
+import fs from "fs"
 
 export let app ={ 
     name:"GameScene",
     scene: (engine:BABYLON.Engine,canvas:HTMLCanvasElement)=>{
     let scene = new  BABYLON.Scene(engine)
     let camera = new BABYLON.ArcRotateCamera("Camera1",1.5,0,10,BABYLON.Vector3.Zero(),scene)
-    camera.attachControl(true)
+    // camera.attachControl(false)
 camera.position = new BABYLON.Vector3(0.020214147902387798,9.45532463776953,18.095283776200585)
-    let camera2 = new BABYLON.ArcRotateCamera("Camera2",Math.PI*0.5,0,30,BABYLON.Vector3.Zero(),scene)
+    // let camera2 = new BABYLON.ArcRotateCamera("Camera2",Math.PI*0.5,0,30,BABYLON.Vector3.Zero(),scene)
     // camera2.attachControl(true)
     // let light = new BABYLON.PointLight("light", new BABYLON.Vector3(0,4,-5),scene) 
 
+    // let testMusic = new BABYLON.Sound("test music","../assets/audio/music/Northern Born - Yee Haw Ninety9Lives Release.mp3",scene,()=> {testMusic.play()},{
+    //     loop:true,
+    //     volume:0.1,
+    //     // autoplay:true
+    // })
+    let currentTrack = 0
+    let loadAllMusic = (scene:BABYLON.Scene)=>{
+        let tracks = fs.readdirSync("./assets/audio/music/").filter(d => d.endsWith(".mp3"))
+        let soundTrack = new BABYLON.SoundTrack(scene,{
+            volume:0.5,
+        })
+        tracks.map(async track => {
+         soundTrack.addSound(new BABYLON.Sound("test music",`../assets/audio/music/${track}`,scene,null,{
+            // loop:true,
+            volume:0.5,
+            // autoplay:true
+        }))
+
+        })
+        return soundTrack
+
+    }
+
+    // let musicControler = new Logic.musicControle(scene,0.5)
+//    let playList = loadAllMusic(scene)
+//    let db = new BABYLON.Analyser(scene)
+//    playList.connectToAnalyser(db)
+//  db.drawDebugCanvas() 
+// console.log( db.getByteFrequencyData())
+//    playList.soundCollection[currentTrack].autoplay = true
+
+//    playList.soundCollection.forEach(track =>{
+//     playList.soundCollection[currentTrack].autoplay = true
+//     track.onEndedObservable.add(()=>{
+//         currentTrack++
+//          if (currentTrack >= playList.soundCollection.length) {
+//               currentTrack = 0
+//          }         
+//          playList.soundCollection[currentTrack].play()
+
+       
+
+//         })
+//     })
+
+ 
 let queue = new Logic.Queue()
 let AdvancedDynamicTexture = GUI.AdvancedDynamicTexture.CreateFullscreenUI("UI")
+let gameLogic = new Logic.GameLogic(scene,queue,AdvancedDynamicTexture)
 
 //Table mesh
 let ground = BABYLON.Mesh.CreateGround('ground1', 20, 20, 20, scene);
@@ -28,7 +76,6 @@ tableImg.diffuseTexture = new BABYLON.Texture("../assets/img/background2.png", s
 tableImg.emissiveTexture = new BABYLON.Texture("../assets/img/background2.png", scene)
 ground.material = tableImg
 
-let gameLogic = new Logic.GameLogic(scene,queue,AdvancedDynamicTexture)
  
 //Game order Visual
 let player = new Logic.Units(gameSettings.playerName,AdvancedDynamicTexture)
@@ -57,9 +104,9 @@ for (let i = 0; i < gameSettings.startingCardCount; i++) {
 player.updateCount()
 
 //For test only--------------------------------------------------------
-// let newCard = Logic.cardMaker(scene,Logic.deck[(Logic.deck.length-1)])
-// gameLogic.cardInteractionEffect(newCard)
-// player.hand.push(newCard)
+let newCard = Logic.cardMaker(scene,Logic.deck[(Logic.deck.length-1)])
+gameLogic.cardInteractionEffect(newCard)
+player.hand.push(newCard)
 //---------------------------------------------------------------------
 
 gameLogic.deckSorter(player)

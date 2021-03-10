@@ -10,7 +10,8 @@ let createWindow = () => {
     height: 600,
     width: 800,
     webPreferences: {
-    nodeIntegration: true
+    nodeIntegration: true,
+    enableRemoteModule: true
     },
     icon:"assets/img/logo.ico",
     title:"UNO",
@@ -40,7 +41,6 @@ let createWindow = () => {
 // initialization and is ready to create browser windows.
 // Some APIs can only be used after this event occurs.
 app.on("ready", createWindow);
-
 // Quit when all windows are closed.
 app.on("window-all-closed", () => {
   // On OS X it is common for applications and their menu bar
