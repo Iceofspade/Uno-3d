@@ -3,11 +3,12 @@ import * as GUI from "babylonjs-gui"
 import * as loaders from "babylonjs-loaders"
 import fs from "fs"
 import { Scene } from "babylonjs/index"
+import path from 'path'
 import sceenControl from "./renderer"  
 import sceneHander from "./renderer"
 import gameSettings from "./gameSettings.json"
 import { Vector3 } from "babylonjs"
-
+import {remote} from "electron"
  export interface Card{
     mesh:BABYLON.Mesh,
     cardInfo:{name:string,
@@ -688,8 +689,7 @@ this.unoTrigger.onPointerDownObservable.add(()=>{
          });
     };   
     turnSystem = () =>{
-
- 
+  
     this.queue.printQueue().forEach(player => {
         player.updateCount()
         player.playerDisplayBox.background = "brown"
@@ -749,19 +749,68 @@ this.unoTrigger.onPointerDownObservable.add(()=>{
     };
     gameOver = ()=>{
         let winner = this.queue.printQueue().filter( deck=> deck.hand.length === 0)
-        let VitoryText = new GUI.TextBlock("Vitory Text",`${winner[0].name} has won!`)
+        let box = new GUI.Rectangle()
+        box.width = 0.6
+        box.height = 0.4
+        this.sceneUI.addControl(box) 
+        let backgroundTextutre = new GUI.Image("Background Texture","../assets/img/menu background.png")
+        box.addControl(backgroundTextutre)
+        let VitoryText = new GUI.TextBlock("Vitory Text",`${winner[0].name} has won!\nDo you want to play again?`)
         VitoryText.textVerticalAlignment = GUI.Control.VERTICAL_ALIGNMENT_TOP
-        VitoryText.fontSizeInPixels = 70
-        this.sceneUI.addControl(VitoryText)
-        setTimeout(() => {
-        this.queue.emptyQueue() 
+        VitoryText.fontSizeInPixels = 50
+        box.addControl(VitoryText)
+
+        let playAgain = this.subButtonMaker("Play again",box)
+        playAgain.background = 'green'
+        playAgain.horizontalAlignment = GUI.Control.HORIZONTAL_ALIGNMENT_LEFT
+        playAgain.verticalAlignment = GUI.Control.VERTICAL_ALIGNMENT_BOTTOM
+        playAgain.topInPixels = -20
+        playAgain.leftInPixels = 20
+        playAgain.onPointerDownObservable.add(()=>{
+            this.queue.emptyQueue() 
         this.musicControles.soundTrack.soundCollection.forEach(sound => sound.dispose())
             sceneHander.setScene("MenuScene")
+        })
+        let quit = this.subButtonMaker("Quit",box)
+        quit.background = 'Red'
+        quit.horizontalAlignment = GUI.Control.HORIZONTAL_ALIGNMENT_RIGHT
+        quit.verticalAlignment = GUI.Control.VERTICAL_ALIGNMENT_BOTTOM
+        quit.topInPixels = -20
+        quit.leftInPixels = -20
+        quit.onPointerDownObservable.add(()=>{
+            this.queue.emptyQueue() 
+            this.musicControles.soundTrack.soundCollection.forEach(sound => sound.dispose())
+            sceneHander.setScene("MenuScene")
+            let window = remote.getCurrentWindow()
+            window.close()
+        })
+         setTimeout(() => {
+        // this.queue.emptyQueue() 
+        // this.musicControles.soundTrack.soundCollection.forEach(sound => sound.dispose())
+        //     sceneHander.setScene("MenuScene")
         }, 5000);
     };  
     setColor = (color:string) =>{
         this.wildColor = color
     };
+    private subButtonMaker = (name:string,control:GUI.Rectangle):GUI.Button=>{
+        let button = new GUI.Button(name)
+        button.widthInPixels = 120
+        button.heightInPixels = 50
+        button.paddingLeftInPixels = 10
+        button.paddingBottomInPixels = 10
+        button.paddingTopInPixels = 10
+        button.horizontalAlignment = GUI.Control.HORIZONTAL_ALIGNMENT_RIGHT
+        button.background = "green"
+        button.paddingBottomInPixels = 10
+        control.addControl(button)
+        
+        let buttonText = new GUI.TextBlock(name+" text",name)
+        buttonText.fontFamily = "Rockwell"
+        button.addControl(buttonText)
+        
+        return button
+        }
 }
 export class 
 musicControle{
@@ -790,12 +839,12 @@ musicControle{
         })
     }
     loadAllMusic = (scene:BABYLON.Scene)=>{
-        let tracks = fs.readdirSync("./assets/audio/music/").filter(d => d.endsWith(".mp3"||".wav"))
+        let tracks = fs.readdirSync(path.join(__dirname,"../assets/audio/music/")).filter(d => d.endsWith(".mp3"||".wav"))
         let soundTrack = new BABYLON.SoundTrack(scene,{
             volume:0.5,
         })
         tracks.map(async track => {
-         soundTrack.addSound(new BABYLON.Sound("test music",`../assets/audio/music/${track}`,scene,null,{
+         soundTrack.addSound(new BABYLON.Sound("test music",path.join(__dirname,`../assets/audio/music/${track}`) ,scene,null,{
             // loop:true,
             volume:0.5,
             // autoplay:true
@@ -878,7 +927,7 @@ export class Units {
        this.playerDisplayBox = new GUI.Rectangle("red box")
         this.playerDisplayBox.background = "brown"
         this.playerDisplayBox.heightInPixels = 35
-        this.playerDisplayBox.widthInPixels = 100
+        this.playerDisplayBox.widthInPixels = 150
         this.playerDisplayBox.linkOffsetY = -100
         UI.addControl(this.playerDisplayBox)
         this.cardCountText = new GUI.TextBlock("card count",`${this.name}: ${this.hand.length}`)
@@ -890,6 +939,7 @@ export class Units {
         this.unoCalledBox.heightInPixels = 100
         this.unoCalledBox.linkOffsetYInPixels = -150
         this.unoCalledBox.isVisible = false
+        this.unoCalledBox.fontSize
         UI.addControl(this.unoCalledBox)
         this.unoCalledBox.linkWithMesh(this.playerNode)
     }
@@ -898,7 +948,7 @@ export class Units {
     }
 }
 let loadAudio = (scene:BABYLON.Scene,file:string)=>{
-    return new BABYLON.Sound("test music",`../assets/audio/SFX effects/${file}`,scene,null,{volume: 10})
+    return new BABYLON.Sound("test music",path.join(__dirname,`../assets/audio/SFX effects/${file}`),scene,null,{volume: 10})
 }
 
 export class Queue {

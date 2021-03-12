@@ -121,8 +121,9 @@ let cam ={
 let botCount = gameSettings.botCount
 
 //Generate AI player
+let botNames = ["JamesBot","Funkybot","MonkeyBot"]
 for (let i = 1; i <= botCount; i++) {
-    createBot(i,"Unit")
+    createBot(i,botNames[i-1])
     }
 
 // Camera switching test

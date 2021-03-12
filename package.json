@@ -1,11 +1,11 @@
 {
-  "name": "babylon-electon-ts",
+  "name": "uno-3d",
   "version": "1.0.0",
   "description": "",
   "main": "/app/main.js",
   "scripts": {
     "start": "electron ./app/main.js",
-    "dist": "electron-packager . --icon=assets/img/logo.ico",
+    "dist": "electron-packager . --icon=assets/img/logo.ico --overwrite --prune --ignore=scr --ignore=tsconfig.json",
     "watchfiles": "tsc -w"
   },
   "author": "Spade",
@@ -20,7 +20,10 @@
     "fs": "0.0.1-security"
   },
   "devDependencies": {
-    "electron": "^11.0.3",
-    "electron-packager": "^15.1.0"
+    "electron": "^11.3.0",
+    "electron-packager": "^15.2.0"
+  },
+  "peerDependencies": {
+    "electron": "^3.0.10"
   }
 }

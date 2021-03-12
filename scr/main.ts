@@ -3,21 +3,26 @@ import path from 'path'
 import url from 'url'
 
 
-let win:BrowserWindow|null;
+
+export let win:BrowserWindow|null;
 let createWindow = () => {
   // Create the browser window.
   win = new BrowserWindow({
-    height: 600,
-    width: 800,
+    height: 768,
+    width: 1366,
     webPreferences: {
     nodeIntegration: true,
-    enableRemoteModule: true
+    enableRemoteModule: true,
+    
     },
     icon:"assets/img/logo.ico",
     title:"UNO",
     
   });
 
+// win.setFullScreen(true)
+
+win.removeMenu()
   // and load the index.html of the app.
   win.loadURL(url.format({
       pathname: path.join(__dirname, "../app/index.html"),
@@ -56,5 +61,6 @@ app.on("activate", () => {
   // dock icon is clicked and there are no other windows open.
   if (win === null) {
     createWindow();
-   }
+    }
 });
+

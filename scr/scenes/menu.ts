@@ -3,14 +3,16 @@ import * as GUI from "babylonjs-gui"
 import sceenControl from "../renderer"  
 import gameSettings from "../gameSettings.json"
 import fs from "fs"
-import {remote} from 'electron' 
-
+import path from 'path'
+import * as electron  from 'electron' 
+ 
 export let app ={ 
     name:"MenuScene",
     scene: (engine:BABYLON.Engine,canvas:HTMLCanvasElement)=>{
     let scene = new  BABYLON.Scene(engine)
     let camera = new BABYLON.ArcRotateCamera("Camera1",1.5,0,10,BABYLON.Vector3.Zero(),scene)
     camera.attachControl(true)
+  
 
 let menuMusic = new BABYLON.Sound("Menue music",`../assets/audio/music/Evence - Falling Ninety9Lives release.mp3`,scene,null,{autoplay:true,volume: gameSettings.volumeLevel*0.6, loop:true})
 
@@ -182,6 +184,15 @@ startingHandSize.slider.onValueChangedObservable.add(()=>{
     startingHandSize.SliderText.text = `${startingHandSize.slider.value}`
 })
 
+// let fullscreenText = new GUI.TextBlock("to fullscreen text","Fullscreen")
+// fullscreenText.textHorizontalAlignment = GUI.Control.HORIZONTAL_ALIGNMENT_LEFT
+// optionsBox.addControl(fullscreenText)
+
+// let tofullscreen = new GUI.RadioButton("to fullscreen")
+// tofullscreen.horizontalAlignment = GUI.Control.HORIZONTAL_ALIGNMENT_RIGHT
+// tofullscreen.heightInPixels = 30
+// tofullscreen.widthInPixels = 30
+// optionsBox.addControl(tofullscreen)
 
 //------- Save and quit buttonss -------
 
@@ -199,7 +210,7 @@ defaultSetting.onPointerDownObservable.add(()=>{
     musicVolume.slider.value = 50
 
     optionsBoxContainer.isVisible = false
-    fs.writeFile("./scr/gameSettings.json", JSON.stringify(gameSettings, null, 4), function (err) {
+    fs.writeFile(path.join(__dirname,`gameSettings.json`) , JSON.stringify(gameSettings, null, 4), function (err) {
         if (err) throw err;
     })    
 })
@@ -213,7 +224,7 @@ saveButton.onPointerDownObservable.add(()=>{
     gameSettings.playerName = nameInput.text
     optionsBoxContainer.isVisible = false
 
-    fs.writeFile("./scr/gameSettings.json", JSON.stringify(gameSettings, null, 4), function (err) {
+    fs.writeFile(path.join(__dirname,`gameSettings.json`) , JSON.stringify(gameSettings, null, 4), function (err) {
         if (err) throw err;
     })    
 })
@@ -240,7 +251,7 @@ OPTIONS.onPointerDownObservable.add(()=>{
 })
 const QUIT = mainButtonMaker("Quit")
 QUIT.onPointerDownObservable.add(()=>{
-    let window = remote.getCurrentWindow()
+    let window =electron.remote.getCurrentWindow()
     window.close()
 })
 return scene
