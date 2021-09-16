@@ -10,9 +10,9 @@ import path from 'path'
 
 class SceneHandler{
     private sceneList: string[] =[];
-    scene:(BABYLON.Scene|undefined);
-    engine:(BABYLON.Engine|undefined);
-    canvas:(HTMLCanvasElement|undefined); 
+    private scene:(BABYLON.Scene|undefined);
+    private engine:(BABYLON.Engine|undefined);
+    private canvas:(HTMLCanvasElement|undefined); 
         constructor(){
         this.sceneList = [];
         this.engine;
@@ -25,26 +25,11 @@ class SceneHandler{
          this.sceneList = readdirSync(path.join(__dirname,"scenes")).filter(d => d.endsWith(".js"))
         }
     //Set the canvas for everything to be rendered on
-        setCanvas = async (canvas:HTMLCanvasElement )=>{
+        setCanvas = async (canvas:HTMLCanvasElement)=>{
             this.canvas = canvas
             this.engine = new BABYLON.Engine(this.canvas, true);
         }
-    //A deafault scene to fall back on if an attempt load a scene fails
-    private defaultScene = ()=>{
-            let scene = new BABYLON.Scene(this.engine!)
-            let camera = new BABYLON.FreeCamera("Camera1",new BABYLON.Vector3(0,10,-10),scene)
-            camera.attachControl(true)
-            camera.setTarget(BABYLON.Vector3.Zero())
-            let light = new BABYLON.PointLight("light", new BABYLON.Vector3(0,4,-5),scene) 
-            
-            let ground = BABYLON.Mesh.CreateGround("ground1",6,6,2,scene)
-            
-            let sphere = BABYLON.Mesh.CreateSphere("sphere",16,2,scene)
-            sphere.position.y = 1
-            
-            return scene
-            }
-    // Setting the new scene to render
+        // Setting the new scene to render
         setScene = async (sceneName:string)=>{
             this.loadScenes().then(()=>{
                 let i = 1
@@ -65,6 +50,28 @@ class SceneHandler{
                 }
         })
         }
+        getScene = () =>{
+            return this.scene
+        }
+        getEngine =  ()=>{
+            return this.engine
+        }
+    //A deafault scene to fall back on if an attempt load a scene fails
+    private defaultScene = ()=>{
+            let scene = new BABYLON.Scene(this.engine!)
+            let camera = new BABYLON.FreeCamera("Camera1",new BABYLON.Vector3(0,10,-10),scene)
+            camera.attachControl(true)
+            camera.setTarget(BABYLON.Vector3.Zero())
+            let light = new BABYLON.PointLight("light", new BABYLON.Vector3(0,4,-5),scene) 
+            
+            let ground = BABYLON.Mesh.CreateGround("ground1",6,6,2,scene)
+            
+            let sphere = BABYLON.Mesh.CreateSphere("sphere",16,2,scene)
+            sphere.position.y = 1
+            
+            return scene
+            }
+    
     // Start rendering of scene
         initialize() {
             this.canvas = document.getElementById('renderCanvas') as HTMLCanvasElement; 
@@ -84,7 +91,7 @@ export default handler
             })
             
              window.addEventListener('resize', function(){
-                handler.engine ==null ?console.error("Cannot resize engine or null") :handler.engine.resize();
+                handler.getEngine() == null ?console.error("Cannot resize engine or null") :handler.getEngine()!.resize();
             });
         })
      })

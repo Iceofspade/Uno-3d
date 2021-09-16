@@ -31,14 +31,13 @@ var __importDefault = (this && this.__importDefault) || function (mod) {
     return (mod && mod.__esModule) ? mod : { "default": mod };
 };
 Object.defineProperty(exports, "__esModule", { value: true });
-exports.Queue = exports.Units = exports.playedCardAnimation = exports.cardMaker = exports.playableChecker = exports.musicControle = exports.GameLogic = exports.deck = void 0;
+exports.Queue = exports.Units = exports.playedCardAnimation = exports.GameLogic = exports.deck = void 0;
 const BABYLON = __importStar(require("babylonjs"));
 const GUI = __importStar(require("babylonjs-gui"));
-const fs_1 = __importDefault(require("fs"));
-const path_1 = __importDefault(require("path"));
 const renderer_1 = __importDefault(require("./renderer"));
-const gameSettings_json_1 = __importDefault(require("./gameSettings.json"));
 const electron_1 = require("electron");
+const gameSettings_json_1 = __importDefault(require("./settings/gameSettings.json"));
+const audioControler_1 = require("./audioControler");
 exports.deck = [
     { name: "yellow_9",
         color: "yellow",
@@ -260,9 +259,11 @@ exports.deck = [
 class ColorControles {
     constructor(SceneUI, scene) {
         this.pickedColor = null;
+        // Hides or shows color picker UI
         this.setIsVisable = (state) => {
             this.mainContainer.isVisible = state;
         };
+        // Show's what color was choosen
         this.showPicked = (color) => __awaiter(this, void 0, void 0, function* () {
             switch (color) {
                 case "red":
@@ -292,6 +293,7 @@ class ColorControles {
                     break;
             }
         });
+        //Sets the color box display by to default
         this.restBoxes = () => {
             this.setIsVisable(false);
             setTimeout(() => {
@@ -299,13 +301,13 @@ class ColorControles {
                 this.colorTexture.emissiveColor = new BABYLON.Color3(72 / 255, 72 / 255, 72 / 255);
                 this.colorTexture.alpha = 0;
             }, 3000);
-        };
-        this.isColorPickable = (state) => {
+        }; // Enables or disables if the color boxes can be clicked
+        this.setIsColorPickable = (state) => {
             this.redBox.isPointerBlocker = state;
             this.blueBox.isPointerBlocker = state;
             this.greenBox.isPointerBlocker = state;
             this.yellowBox.isPointerBlocker = state;
-        };
+        }; // Picks a random color
         this.randomColor = () => {
             let colors = ["yellow", "red", "green", "blue"];
             return colors[Math.floor(Math.random() * colors.length)];
@@ -341,11 +343,78 @@ class ColorControles {
         plane.material = this.colorTexture;
     }
 }
-class GameLogic extends ColorControles {
+//Under consideration to replace the Card @type
+class Cardz {
+    constructor(name, color, sign, ID, scene) {
+        this.scene = scene;
+        this.name = name;
+        this.color = color;
+        this.sign = sign;
+        this.ID = ID;
+        let fornt = new BABYLON.Vector4(0.5, 0, 1, 1);
+        let back = new BABYLON.Vector4(0, 0, 0.5, 1);
+        this.mesh = BABYLON.MeshBuilder.CreatePlane(this.name, { width: 1, height: 2, sideOrientation: BABYLON.Mesh.DOUBLESIDE, frontUVs: fornt, backUVs: back }, this.scene);
+        let Texture = new BABYLON.StandardMaterial("Card Texture", this.scene);
+        Texture.diffuseTexture = new BABYLON.Texture("../assets/img/Uno cards/" + this.name + ".png", this.scene);
+        Texture.emissiveTexture = new BABYLON.Texture("../assets/img/Uno cards/" + this.name + ".png", this.scene);
+        this.mesh.material = Texture;
+        this.mesh.actionManager = new BABYLON.ActionManager(this.scene);
+        let cardHighlight = new BABYLON.HighlightLayer("hl1", this.scene);
+        cardHighlight.addMesh(this.mesh, BABYLON.Color3.White());
+        cardHighlight.innerGlow = false;
+        cardHighlight.outerGlow = false;
+        //Hover Out Effect
+        this.mesh.actionManager.registerAction(new BABYLON.InterpolateValueAction(BABYLON.ActionManager.OnPointerOutTrigger, this.mesh, "position.y", -2, 300));
+        this.mesh.actionManager.registerAction(new BABYLON.ExecuteCodeAction(BABYLON.ActionManager.OnPointerOutTrigger, () => {
+            cardHighlight.outerGlow = false;
+        }));
+        //Hover Over Effect
+        this.mesh.actionManager.registerAction(new BABYLON.InterpolateValueAction(BABYLON.ActionManager.OnPointerOverTrigger, this.mesh, "position.y", -1, 300));
+        this.mesh.actionManager.registerAction(new BABYLON.ExecuteCodeAction(BABYLON.ActionManager.OnPointerOverTrigger, () => {
+            cardHighlight.outerGlow = true;
+        }));
+        //On right click for details on the card
+        this.mesh.actionManager.registerAction(new BABYLON.ExecuteCodeAction(BABYLON.ActionManager.OnRightPickTrigger, () => {
+            console.log("Picked card " + this.name, this);
+        }));
+    }
+}
+class GameLogic {
     constructor(scene, queue, sceneUI) {
-        super(sceneUI, scene);
         this.wildColor = null;
         this.drawRate = 0;
+        this.setUpDrawbox = () => {
+            //------------------------------------| Draw box data |------------------------------------
+            let boxHightLigheter = new BABYLON.HighlightLayer("Draw box highlight", this.scene);
+            boxHightLigheter.innerGlow = false;
+            boxHightLigheter.outerGlow = false;
+            this.drawBox.position = new BABYLON.Vector3(2.5, -2.5, 0);
+            this.drawBox.rotation.y = Math.PI * 0.5;
+            boxHightLigheter.addMesh(this.drawBox, new BABYLON.Color3(1, 1, 1));
+            let boxTexture = new BABYLON.StandardMaterial("Card Texture", this.scene);
+            boxTexture.diffuseTexture = new BABYLON.Texture("../assets/img/deck texture.png", this.scene);
+            boxTexture.emissiveTexture = new BABYLON.Texture("../assets/img/deck texture.png", this.scene);
+            this.drawBox.material = boxTexture;
+            this.drawBox.actionManager = new BABYLON.ActionManager(this.scene);
+            // On Hover Out
+            this.drawBox.actionManager.registerAction(new BABYLON.ExecuteCodeAction(BABYLON.ActionManager.OnPointerOutTrigger, () => {
+                boxHightLigheter.outerGlow = false;
+            }));
+            // On Hover Over
+            this.drawBox.actionManager.registerAction(new BABYLON.ExecuteCodeAction(BABYLON.ActionManager.OnPointerOverTrigger, () => {
+                boxHightLigheter.outerGlow = true;
+            }));
+            // On Click
+            this.drawBox.actionManager.registerAction(new BABYLON.ExecuteCodeAction(BABYLON.ActionManager.OnPickDownTrigger, () => {
+                let draw = this.randomCardGenerator();
+                this.queue.getCurrentPlayer().hand.unshift(draw);
+                this.deckSorter(this.queue.getCurrentPlayer());
+                if (this.queue.getCurrentPlayer().isAI === false) {
+                    this.cardInteractionEffect(draw);
+                    this.queue.getCurrentPlayer().updateCount();
+                }
+            }));
+        };
         this.setUnoButton = (state) => {
             this.unoButtonImage.isVisible = state;
             this.unoTrigger.isEnabled = state;
@@ -372,12 +441,32 @@ class GameLogic extends ColorControles {
                 this.queue.getCurrentPlayer().unoCalledBox.isVisible = false;
             }
         };
-        this.isPickable = (state) => {
-            this.drawBox.isPickable = state;
-            this.queue.printQueue()
-                .filter(player => player.isAI == false)
-                .forEach(player => player.hand.forEach(card => card.mesh.isPickable = state));
+        /**
+       * Creates the mesh for the card with mesh
+       * @param {*} card The card data to use for creation.
+       */
+        this.cardMaker = (card) => {
+            let fornt = new BABYLON.Vector4(0.5, 0, 1, 1);
+            let back = new BABYLON.Vector4(0, 0, 0.5, 1);
+            let mesh = BABYLON.MeshBuilder.CreatePlane(card.name, { width: 1, height: 2, sideOrientation: BABYLON.Mesh.DOUBLESIDE, frontUVs: fornt, backUVs: back }, this.scene);
+            let Texture = new BABYLON.StandardMaterial("Card Texture", this.scene);
+            Texture.diffuseTexture = new BABYLON.Texture("../assets/img/Uno cards/" + card.name + ".png", this.scene);
+            Texture.emissiveTexture = new BABYLON.Texture("../assets/img/Uno cards/" + card.name + ".png", this.scene);
+            mesh.material = Texture;
+            return { mesh,
+                cardInfo: card };
         };
+        /**
+       * Enable or disable picking on a the drawbox cards.
+       * @param {*} state the state it should be in.
+       */
+        this.setdrawBoxPickable = (state) => {
+            this.drawBox.isPickable = state;
+        };
+        /**
+       * Allow's a player to interact with a card.
+       * @param {*} card The to give interaction to.
+       */
         this.cardInteractionEffect = (card) => {
             let mesh = card.mesh;
             mesh.actionManager = new BABYLON.ActionManager(this.scene);
@@ -402,7 +491,7 @@ class GameLogic extends ColorControles {
             //On duoble click 
             mesh.actionManager.registerAction(new BABYLON.ExecuteCodeAction(BABYLON.ActionManager.OnLeftPickTrigger, () => {
                 // let rotationRandomiser = Math.floor(Math.random() * 4)*(Math.PI*0.25)
-                let playableCheck = (0, exports.playableChecker)(card, this.pile, this.wildColor);
+                let playableCheck = this.playableChecker(card, this.wildColor);
                 if (playableCheck.playable === true) {
                     this.pilePusher(card);
                     this.specialCards(playableCheck.card.cardInfo);
@@ -415,7 +504,7 @@ class GameLogic extends ColorControles {
                         default:
                             this.queue.movePlayerBack().then(() => {
                                 this.turnSystem();
-                                this.restBoxes();
+                                this.ColorControle.restBoxes();
                                 this.unoTrigger.isEnabled = false;
                                 this.unoTrigger.isVisible = false;
                             });
@@ -426,94 +515,132 @@ class GameLogic extends ColorControles {
                 console.log("Can't be played");
             }));
         };
+        /**
+       * Creates a random card
+       * @param {*} falloff The number is meant to prevent Wild and draw4s form being picked.
+       * 1 to stop wilds 2 for both wilds and draw4s.
+       * @returns newly created card
+       */
         this.randomCardGenerator = (falloff = 0) => {
+            var _a, _b, _c;
             let cardPicker = Math.floor(Math.random() * ((exports.deck.length - 1) - falloff));
-            let set = (0, exports.cardMaker)(this.scene, exports.deck[cardPicker]);
-            if (this.drawnCardSound !== undefined) {
-                this.drawnCardSound.play();
+            console.log((_a = this.musicControles) === null || _a === void 0 ? void 0 : _a.cardPlayedSound.getVolume());
+            let set = this.cardMaker(exports.deck[cardPicker]);
+            if (((_b = this.musicControles) === null || _b === void 0 ? void 0 : _b.drawnCardSound) !== undefined) {
+                (_c = this.musicControles) === null || _c === void 0 ? void 0 : _c.drawnCardSound.play();
             }
-            // console.log( this.drawnCardSound)
             return set;
         };
+        /**
+       * Is responsible for the all the special cards effect
+       * @param {*} playedCard The card to check
+       */
         this.specialCards = (playedCard) => {
             if (playedCard.sign === "wild") {
-                let newColor = this.randomColor();
-                if (this.queue.getCurrentPlayer().isAI === true) {
-                    this.setColor(newColor);
-                    this.showPicked(newColor);
-                    this.isColorPickable(false);
-                    this.wildColor = this.pickedColor;
-                }
-                else {
-                    this.setIsVisable(true);
-                    this.isColorPickable(true);
-                }
                 console.log("A wild card has been played the color is now " + this.wildColor);
+                this.onWild();
             }
             else if (playedCard.sign === "draw4") {
-                this.drawRate += 4;
-                let newColor = this.randomColor();
-                if (this.queue.getCurrentPlayer().isAI === true) {
-                    this.setColor(newColor);
-                    this.showPicked(newColor);
-                    this.isColorPickable(false);
-                    this.wildColor = this.pickedColor;
-                }
-                else {
-                    this.setIsVisable(true);
-                    this.isColorPickable(true);
-                }
                 console.log("A draw4 has been played the color is " + this.wildColor);
+                this.onDraw4();
             }
             else if (playedCard.sign === "draw2") {
-                this.drawRate += 2;
                 console.log("A draw2 has been played");
+                this.onDraw2();
             }
             else if (this.drawRate > 0) {
-                let drawArry = [];
-                for (let i = 0; i < this.drawRate; i++) {
-                    drawArry.push(this.randomCardGenerator());
-                }
-                if (this.queue.getCurrentPlayer().place === 0) {
-                    this.queue.getCurrentPlayer().hand.push(...drawArry);
-                    drawArry.map((card) => { this.cardInteractionEffect(card); });
-                    this.deckSorter(this.queue.getCurrentPlayer());
-                    console.log(this.queue.getCurrentPlayer().name + " has drawn " + this.drawRate + " cards");
-                    this.drawRate = 0;
-                }
-                else {
-                    this.queue.getCurrentPlayer().hand.push(...drawArry);
-                    this.deckSorter(this.queue.getCurrentPlayer());
-                    console.log(this.queue.getCurrentPlayer().name + " has drawn " + this.drawRate + " cards");
-                    this.drawRate = 0;
-                }
+                console.log(this.queue.getCurrentPlayer().name + " has drawn " + this.drawRate + " cards");
+                this.onBluckDraw();
             }
             else if (playedCard.sign === "skip") {
-                this.queue.movePlayerBack();
+                this.onSkip();
                 console.log(this.queue.getCurrentPlayer().name + " has been skiped");
             }
             else if (playedCard.sign === "reverse") {
-                this.spinRate = -this.spinRate;
-                this.arrowDirectionMesh.rotation.x -= Math.PI;
+                this.onReverse();
                 console.log("The turn order has been revesed!");
-                this.queue.reverseOrder();
             }
             else {
                 this.wildColor = null;
             }
         };
+        this.onBluckDraw = () => {
+            let drawArry = [];
+            let currentPlayer = this.queue.getCurrentPlayer();
+            for (let i = 0; i < this.drawRate; i++) {
+                drawArry.push(this.randomCardGenerator());
+            }
+            if (currentPlayer.isAI === false) {
+                currentPlayer.hand.push(...drawArry);
+                drawArry.forEach((card) => {
+                    this.cardInteractionEffect(card);
+                });
+                this.drawRate = 0;
+            }
+            else {
+                currentPlayer.hand.push(...drawArry);
+            }
+            this.deckSorter(currentPlayer);
+            this.drawRate = 0;
+        };
+        this.onDraw4 = () => {
+            this.drawRate += 4;
+            this.onWild();
+        };
+        this.onDraw2 = () => {
+            this.drawRate += 2;
+        };
+        this.onWild = () => {
+            let newColor = this.ColorControle.randomColor();
+            if (this.queue.getCurrentPlayer().isAI === true) {
+                this.setColor(newColor);
+                this.ColorControle.showPicked(newColor);
+                this.ColorControle.setIsColorPickable(false);
+                this.wildColor = this.ColorControle.pickedColor;
+            }
+            else {
+                this.ColorControle.setIsVisable(true);
+                this.ColorControle.setIsColorPickable(true);
+            }
+        };
+        this.onSkip = () => {
+            this.queue.movePlayerBack();
+        };
+        this.onReverse = () => {
+            this.spinRate = -this.spinRate;
+            this.arrowDirectionMesh.rotation.x -= Math.PI;
+            this.queue.reverseOrder();
+        };
+        this.playableChecker = (playedCard, randColor = null) => {
+            if (playedCard.cardInfo.sign === "wild" || playedCard.cardInfo.sign === "draw4") { //checks if a wild card or if a draw4 card was used
+                return { card: playedCard,
+                    playable: true };
+            }
+            else if ([this.pile.cardInfo.color, randColor].includes(playedCard.cardInfo.color) || playedCard.cardInfo.sign === this.pile.cardInfo.sign) { // checks if color or number or signs match's   
+                return { card: playedCard,
+                    playable: true };
+            }
+            else {
+                return { card: playedCard,
+                    playable: false };
+            }
+        };
+        /**
+       * Takes a given card to sets as the faced down card
+       * @param {*} playedCard The card to set as the faced down card
+       */
         this.pilePusher = (playedCard) => __awaiter(this, void 0, void 0, function* () {
             this.queue.getCurrentPlayer().hand.splice(this.queue.getCurrentPlayer().hand.indexOf(playedCard), 1);
             let randomRotation = Math.random() * (2) + Math.PI;
-            playedCard.mesh.position = new BABYLON.Vector3(0, this.basePileStartingPos += 0.001, 0);
+            playedCard.mesh.position = new BABYLON.Vector3(0, this.pileStartingPos += 0.001, 0);
             playedCard.mesh.rotation = new BABYLON.Vector3(Math.PI * 0.5, 0, randomRotation);
             let newpile = BABYLON.Mesh.MergeMeshes([playedCard.mesh, this.pile.mesh], true, true, undefined, true, true);
             newpile.name = playedCard.cardInfo.name;
             this.pile = { mesh: newpile,
                 cardInfo: playedCard.cardInfo };
             this.deckSorter(this.queue.getCurrentPlayer());
-            if (this.cardPlayedSound !== undefined) {
-                this.cardPlayedSound.play();
+            if (this.musicControles.cardPlayedSound !== undefined) {
+                this.musicControles.cardPlayedSound.play();
             }
         });
         /**
@@ -554,18 +681,25 @@ class GameLogic extends ColorControles {
                 startPositon.z -= increment.depth;
             });
         });
+        /**
+       * Turn order event system
+       */
         this.turnSystem = () => {
+            let currentPlayer = this.queue.getCurrentPlayer();
+            //Shows who's turn it is currently
             this.queue.printQueue().forEach(player => {
                 player.updateCount();
                 player.playerDisplayBox.background = "brown";
-                if (player === this.queue.getCurrentPlayer()) {
+                if (player === currentPlayer) {
                     player.playerDisplayBox.background = "green";
                 }
             });
+            // Checks if anyone has 0 cards left and ends the game if true
             if (this.queue.printQueue().filter(deck => deck.hand.length === 0).length > 0) {
                 this.gameOver();
                 return;
             }
+            //Attepted UNO call system
             // this.queue.printQueue().forEach( unit => {
             //     if(unit !== this.queue.getCurrentPlayer()){
             //         if(unit.hand.length === 1){
@@ -575,11 +709,11 @@ class GameLogic extends ColorControles {
             //         }
             //     }
             // })
-            let currentPlayer = this.queue.getCurrentPlayer();
             //If it's the AI's turn then the AI acts
-            if (currentPlayer.place !== 0) {
-                this.isPickable(false);
-                let cardCheckerLoop = currentPlayer.hand.map(card => (0, exports.playableChecker)(card, this.pile, this.wildColor)).filter(card => card.playable);
+            if (currentPlayer.isAI === true) {
+                this.setdrawBoxPickable(false);
+                this.queue.printQueue().forEach(player => player.setHandInteractable(false));
+                let cardCheckerLoop = currentPlayer.hand.map(card => this.playableChecker(card, this.wildColor)).filter(card => card.playable);
                 if (cardCheckerLoop.length > 0) {
                     setTimeout(() => {
                         let playedCard = currentPlayer.hand[currentPlayer.hand.indexOf(cardCheckerLoop[0].card)];
@@ -588,7 +722,7 @@ class GameLogic extends ColorControles {
                         this.specialCards(playedCard.cardInfo);
                         this.queue.movePlayerBack().then(() => {
                             this.turnSystem();
-                            this.restBoxes();
+                            this.ColorControle.restBoxes();
                             /*this.unoTrigger.isEnabled = false
                         this.unoTrigger.isVisible = false*/ 
                         });
@@ -604,17 +738,21 @@ class GameLogic extends ColorControles {
                 }
             }
             //Else let the player act
-            else if (this.queue.getCurrentPlayer().place === 0) {
-                this.isPickable(true);
+            else if (currentPlayer.isAI === false) {
+                this.setdrawBoxPickable(true);
+                currentPlayer.setHandInteractable(true);
                 console.log("Waiting for input");
             }
         };
+        /**
+       * Game over event
+       */
         this.gameOver = () => {
             let winner = this.queue.printQueue().filter(deck => deck.hand.length === 0);
             let box = new GUI.Rectangle();
             box.width = 0.6;
             box.height = 0.4;
-            this.sceneUI.addControl(box);
+            this.ColorControle.sceneUI.addControl(box);
             let backgroundTextutre = new GUI.Image("Background Texture", "../assets/img/menu background.png");
             box.addControl(backgroundTextutre);
             let VitoryText = new GUI.TextBlock("Vitory Text", `${winner[0].name} has won!\nDo you want to play again?`);
@@ -651,6 +789,10 @@ class GameLogic extends ColorControles {
                 //     sceneHander.setScene("MenuScene")
             }, 5000);
         };
+        /**
+       * Set's the color of the wildColor
+       * @param {*} player The player who's hand that will be sorted
+       */
         this.setColor = (color) => {
             this.wildColor = color;
         };
@@ -673,52 +815,13 @@ class GameLogic extends ColorControles {
         this.queue = queue;
         this.pile = this.randomCardGenerator(2);
         this.scene = scene;
-        this.basePileStartingPos = -2.9;
+        this.ColorControle = new ColorControles(sceneUI, this.scene);
+        this.pileStartingPos = -2.9;
         this.pile.mesh.position = new BABYLON.Vector3(0, -2.9, 0);
         this.pile.mesh.rotation = new BABYLON.Vector3(Math.PI * 0.5, 0, 0);
         //                         ----------| Sound |------------
-        this.musicControles = new musicControle(this.scene);
+        this.musicControles = new audioControler_1.MusicControler(this.scene);
         this.musicControles.soundTrack.soundCollection[this.musicControles.currentTrack];
-        this.cardPlayedSound = loadAudio(this.scene, "drawn_card.wav");
-        this.drawnCardSound = loadAudio(this.scene, "played_card.wav");
-        //------------------------------------| Draw box data |------------------------------------
-        let faceUV = new Array(3);
-        for (var i = 0; i < 6; i++) {
-            faceUV[i] = new BABYLON.Vector4(1 / 3, 0, (1 + 1) / 3, 1 / 1);
-        }
-        faceUV[4] = new BABYLON.Vector4(0 / 3, 0, (0 + 1) / 3, 1 / 1);
-        faceUV[2] = new BABYLON.Vector4(2 / 3, 0, (2 + 1) / 3, 1 / 1);
-        faceUV[3] = new BABYLON.Vector4(2 / 3, 0, (2 + 1) / 3, 1 / 1);
-        this.boxHightLigheter = new BABYLON.HighlightLayer("Draw box highlight", this.scene);
-        this.boxHightLigheter.innerGlow = false;
-        this.boxHightLigheter.outerGlow = false;
-        this.drawBox = BABYLON.MeshBuilder.CreateBox("draw box", { width: 2, height: 0.8, faceUV: faceUV });
-        this.drawBox.position = new BABYLON.Vector3(2.5, -2.5, 0);
-        this.drawBox.rotation.y = Math.PI * 0.5;
-        this.boxHightLigheter.addMesh(this.drawBox, new BABYLON.Color3(1, 1, 1));
-        this.boxTexture = new BABYLON.StandardMaterial("Card Texture", scene);
-        this.boxTexture.diffuseTexture = new BABYLON.Texture("../assets/img/deck texture.png", scene);
-        this.boxTexture.emissiveTexture = new BABYLON.Texture("../assets/img/deck texture.png", scene);
-        this.drawBox.material = this.boxTexture;
-        this.drawBox.actionManager = new BABYLON.ActionManager(this.scene);
-        // On Hover Over
-        this.drawBox.actionManager.registerAction(new BABYLON.ExecuteCodeAction(BABYLON.ActionManager.OnPointerOutTrigger, () => {
-            this.boxHightLigheter.outerGlow = false;
-        }));
-        // On Hover Out
-        this.drawBox.actionManager.registerAction(new BABYLON.ExecuteCodeAction(BABYLON.ActionManager.OnPointerOverTrigger, () => {
-            this.boxHightLigheter.outerGlow = true;
-        }));
-        // On Click
-        this.drawBox.actionManager.registerAction(new BABYLON.ExecuteCodeAction(BABYLON.ActionManager.OnPickDownTrigger, () => {
-            let draw = this.randomCardGenerator();
-            this.queue.getCurrentPlayer().hand.unshift(draw);
-            this.deckSorter(this.queue.getCurrentPlayer());
-            if (this.queue.getCurrentPlayer().place === 0) {
-                this.cardInteractionEffect(draw);
-                this.queue.getCurrentPlayer().updateCount();
-            }
-        }));
         //------------------------------------------------------------------------------------------------------------
         // ------------------------------------ Arrow spin Control ------------------------------------
         this.spinRate = 0.01;
@@ -736,27 +839,37 @@ class GameLogic extends ColorControles {
         arrowTexture.useAlphaFromDiffuseTexture = true;
         arrowTexture.backFaceCulling = false;
         this.arrowDirectionMesh.material = arrowTexture;
-        //--------------------------------------------------------------------------------------------
+        //------------------------------------| Draw box data |------------------------------------
+        let faceUV = new Array(3);
+        for (var i = 0; i < 6; i++) {
+            faceUV[i] = new BABYLON.Vector4(1 / 3, 0, (1 + 1) / 3, 1 / 1);
+        }
+        ;
+        faceUV[4] = new BABYLON.Vector4(0 / 3, 0, (0 + 1) / 3, 1 / 1);
+        faceUV[2] = new BABYLON.Vector4(2 / 3, 0, (2 + 1) / 3, 1 / 1);
+        faceUV[3] = new BABYLON.Vector4(2 / 3, 0, (2 + 1) / 3, 1 / 1);
+        this.drawBox = BABYLON.MeshBuilder.CreateBox("draw box", { width: 2, height: 0.8, faceUV: faceUV });
+        this.setUpDrawbox();
         //-------------------------------------------- Color picking events ------------------------------------------------
-        this.redBox.onPointerDownObservable.add(() => {
-            this.showPicked("red");
-            this.wildColor = this.pickedColor;
-            this.queue.movePlayerBack().then(() => { this.turnSystem(); this.setIsVisable(false); });
+        this.ColorControle.redBox.onPointerDownObservable.add(() => {
+            this.ColorControle.showPicked("red");
+            this.wildColor = this.ColorControle.pickedColor;
+            this.queue.movePlayerBack().then(() => { this.turnSystem(); this.ColorControle.setIsVisable(false); });
         });
-        this.blueBox.onPointerDownObservable.add(() => {
-            this.showPicked("blue");
-            this.wildColor = this.pickedColor;
-            this.queue.movePlayerBack().then(() => { this.turnSystem(); this.setIsVisable(false); });
+        this.ColorControle.blueBox.onPointerDownObservable.add(() => {
+            this.ColorControle.showPicked("blue");
+            this.wildColor = this.ColorControle.pickedColor;
+            this.queue.movePlayerBack().then(() => { this.turnSystem(); this.ColorControle.setIsVisable(false); });
         });
-        this.greenBox.onPointerDownObservable.add(() => {
-            this.showPicked("green");
-            this.wildColor = this.pickedColor;
-            this.queue.movePlayerBack().then(() => { this.turnSystem(); this.setIsVisable(false); });
+        this.ColorControle.greenBox.onPointerDownObservable.add(() => {
+            this.ColorControle.showPicked("green");
+            this.wildColor = this.ColorControle.pickedColor;
+            this.queue.movePlayerBack().then(() => { this.turnSystem(); this.ColorControle.setIsVisable(false); });
         });
-        this.yellowBox.onPointerDownObservable.add(() => {
-            this.showPicked("yellow");
-            this.wildColor = this.pickedColor;
-            this.queue.movePlayerBack().then(() => { this.turnSystem(); this.setIsVisable(false); });
+        this.ColorControle.yellowBox.onPointerDownObservable.add(() => {
+            this.ColorControle.showPicked("yellow");
+            this.wildColor = this.ColorControle.pickedColor;
+            this.queue.movePlayerBack().then(() => { this.turnSystem(); this.ColorControle.setIsVisable(false); });
         });
         //---------------------------------------------------------------------------------------------------------------------
         this.unoTrigger = new GUI.Button("Uno trigger");
@@ -769,7 +882,7 @@ class GameLogic extends ColorControles {
         this.unoTrigger.leftInPixels = -50;
         this.unoTrigger.isEnabled = false;
         this.unoTrigger.isVisible = false;
-        this.sceneUI.addControl(this.unoTrigger);
+        this.ColorControle.sceneUI.addControl(this.unoTrigger);
         this.unoTrigger.onPointerDownObservable.add(() => {
             this.onUnoCall(true);
             this.unoTrigger.isEnabled = false;
@@ -782,79 +895,10 @@ class GameLogic extends ColorControles {
     ;
 }
 exports.GameLogic = GameLogic;
-class musicControle {
-    constructor(scene) {
-        this.loadAllMusic = (scene) => {
-            let tracks = fs_1.default.readdirSync(path_1.default.join(__dirname, "../assets/audio/music/")).filter(d => d.endsWith(".mp3" || ".wav"));
-            let soundTrack = new BABYLON.SoundTrack(scene, {
-                volume: 0.5,
-            });
-            tracks.map((track) => __awaiter(this, void 0, void 0, function* () {
-                soundTrack.addSound(new BABYLON.Sound("test music", path_1.default.join(__dirname, `../assets/audio/music/${track}`), scene, null, {
-                    // loop:true,
-                    volume: 0.5,
-                    // autoplay:true
-                }));
-            }));
-            return soundTrack;
-        };
-        this.volume = gameSettings_json_1.default.volumeLevel * 0.6;
-        this.soundTrack = this.loadAllMusic(scene);
-        this.currentTrack = Math.round(Math.random() * this.soundTrack.soundCollection.length - 1);
-        // let db = new BABYLON.Analyser(scene)
-        // playList.connectToAnalyser(db)
-        // db.drawDebugCanvas() 
-        // console.log( db.getByteFrequencyData())
-        this.soundTrack.soundCollection[this.currentTrack].autoplay = true;
-        this.soundTrack.soundCollection.forEach(track => {
-            this.soundTrack.soundCollection[this.currentTrack].autoplay = true;
-            track.onEndedObservable.add(() => {
-                this.currentTrack++;
-                if (this.currentTrack >= this.soundTrack.soundCollection.length) {
-                    this.currentTrack = 0;
-                }
-                this.soundTrack.soundCollection[this.currentTrack].play();
-            });
-        });
-    }
-}
-exports.musicControle = musicControle;
 //In case orginal deck is currupted use this to back it up.
 // fs.writeFile("./deck.json", JSON.stringify(deck, null, 4), function (err) {
 //     if (err) throw err;
 // }) 
-let playableChecker = (playerCard, facedUpCard, randColor = null) => {
-    if (playerCard.cardInfo.sign === "wild") { //checks if a wild card was used      
-        return { card: playerCard,
-            playable: true };
-    }
-    else if (playerCard.cardInfo.sign === "draw4") { //checks if a draw 4 card was used     
-        return { card: playerCard,
-            playable: true };
-    }
-    else if (playerCard.cardInfo.color === facedUpCard.cardInfo.color || playerCard.cardInfo.sign === facedUpCard.cardInfo.sign || playerCard.cardInfo.color === randColor) // checks if color or number match's 
-     {
-        return { card: playerCard,
-            playable: true };
-    }
-    else {
-        return { card: playerCard,
-            playable: false };
-    }
-};
-exports.playableChecker = playableChecker;
-let cardMaker = (scene, card) => {
-    let fornt = new BABYLON.Vector4(0.5, 0, 1, 1);
-    let back = new BABYLON.Vector4(0, 0, 0.5, 1);
-    let mesh = BABYLON.MeshBuilder.CreatePlane(card.name, { width: 1, height: 2, sideOrientation: BABYLON.Mesh.DOUBLESIDE, frontUVs: fornt, backUVs: back }, scene);
-    let Texture = new BABYLON.StandardMaterial("Card Texture", scene);
-    Texture.diffuseTexture = new BABYLON.Texture("../assets/img/Uno cards/" + card.name + ".png", scene);
-    Texture.emissiveTexture = new BABYLON.Texture("../assets/img/Uno cards/" + card.name + ".png", scene);
-    mesh.material = Texture;
-    return { mesh,
-        cardInfo: card };
-};
-exports.cardMaker = cardMaker;
 //not completed
 let playedCardAnimation = (mesh) => __awaiter(void 0, void 0, void 0, function* () {
     let playedCardAnim = new BABYLON.Animation("myAnimation", "position", 30, BABYLON.Animation.ANIMATIONTYPE_FLOAT, BABYLON.Animation.ANIMATIONLOOPMODE_CYCLE);
@@ -879,6 +923,18 @@ class Units {
         this.hand = [];
         this.updateCount = () => {
             this.cardCountText.text = `${this.name}: ${this.hand.length}`;
+        };
+        this.createHand = (gameLogic) => {
+            for (let i = 0; i < gameSettings_json_1.default.startingCardCount; i++) {
+                let newCard = gameLogic.randomCardGenerator();
+                gameLogic.cardInteractionEffect(newCard);
+                this.hand.push(newCard);
+            }
+            this.updateCount();
+            gameLogic.deckSorter(this);
+        };
+        this.setHandInteractable = (state) => {
+            this.hand.forEach(card => card.mesh.isPickable = state);
         };
         this.name = name;
         this.hand = [];
@@ -905,9 +961,6 @@ class Units {
     }
 }
 exports.Units = Units;
-let loadAudio = (scene, file) => {
-    return new BABYLON.Sound("test music", path_1.default.join(__dirname, `../assets/audio/SFX effects/${file}`), scene, null, { volume: 10 });
-};
 class Queue {
     constructor() {
         this.players = [];

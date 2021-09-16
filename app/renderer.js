@@ -46,18 +46,6 @@ class SceneHandler {
             this.canvas = canvas;
             this.engine = new BABYLON.Engine(this.canvas, true);
         });
-        //A deafault scene to fall back on if an attempt load a scene fails
-        this.defaultScene = () => {
-            let scene = new BABYLON.Scene(this.engine);
-            let camera = new BABYLON.FreeCamera("Camera1", new BABYLON.Vector3(0, 10, -10), scene);
-            camera.attachControl(true);
-            camera.setTarget(BABYLON.Vector3.Zero());
-            let light = new BABYLON.PointLight("light", new BABYLON.Vector3(0, 4, -5), scene);
-            let ground = BABYLON.Mesh.CreateGround("ground1", 6, 6, 2, scene);
-            let sphere = BABYLON.Mesh.CreateSphere("sphere", 16, 2, scene);
-            sphere.position.y = 1;
-            return scene;
-        };
         // Setting the new scene to render
         this.setScene = (sceneName) => __awaiter(this, void 0, void 0, function* () {
             this.loadScenes().then(() => {
@@ -79,6 +67,24 @@ class SceneHandler {
                 }
             });
         });
+        this.getScene = () => {
+            return this.scene;
+        };
+        this.getEngine = () => {
+            return this.engine;
+        };
+        //A deafault scene to fall back on if an attempt load a scene fails
+        this.defaultScene = () => {
+            let scene = new BABYLON.Scene(this.engine);
+            let camera = new BABYLON.FreeCamera("Camera1", new BABYLON.Vector3(0, 10, -10), scene);
+            camera.attachControl(true);
+            camera.setTarget(BABYLON.Vector3.Zero());
+            let light = new BABYLON.PointLight("light", new BABYLON.Vector3(0, 4, -5), scene);
+            let ground = BABYLON.Mesh.CreateGround("ground1", 6, 6, 2, scene);
+            let sphere = BABYLON.Mesh.CreateSphere("sphere", 16, 2, scene);
+            sphere.position.y = 1;
+            return scene;
+        };
         this.sceneList = [];
         this.engine;
         this.canvas;
@@ -102,7 +108,7 @@ window.addEventListener('DOMContentLoaded', function () {
             handler.initialize();
         });
         window.addEventListener('resize', function () {
-            handler.engine == null ? console.error("Cannot resize engine or null") : handler.engine.resize();
+            handler.getEngine() == null ? console.error("Cannot resize engine or null") : handler.getEngine().resize();
         });
     });
 });
