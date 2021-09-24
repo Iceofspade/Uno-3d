@@ -384,7 +384,7 @@ class GameLogic {
         this.wildColor = null;
         this.drawRate = 0;
         this.setUpDrawbox = () => {
-            //------------------------------------| Draw box data |------------------------------------
+            //------------------------------------| Draw box data |------------------------------------   
             let boxHightLigheter = new BABYLON.HighlightLayer("Draw box highlight", this.scene);
             boxHightLigheter.innerGlow = false;
             boxHightLigheter.outerGlow = false;
@@ -406,12 +406,13 @@ class GameLogic {
             }));
             // On Click
             this.drawBox.actionManager.registerAction(new BABYLON.ExecuteCodeAction(BABYLON.ActionManager.OnPickDownTrigger, () => {
+                let currentPlayer = this.queue.getCurrentPlayer();
                 let draw = this.randomCardGenerator();
-                this.queue.getCurrentPlayer().hand.unshift(draw);
-                this.deckSorter(this.queue.getCurrentPlayer());
-                if (this.queue.getCurrentPlayer().isAI === false) {
+                currentPlayer.hand.unshift(draw);
+                currentPlayer.deckSorter();
+                if (currentPlayer.isAI === false) {
                     this.cardInteractionEffect(draw);
-                    this.queue.getCurrentPlayer().updateCount();
+                    currentPlayer.updateCount();
                 }
             }));
         };
@@ -420,8 +421,9 @@ class GameLogic {
             this.unoTrigger.isEnabled = state;
         };
         this.onUnoCall = (byPlayer) => {
+            let currentPlayer = this.queue.getCurrentPlayer();
             let callers = this.queue.printQueue().filter(unit => {
-                if (unit.isAI === true && unit !== this.queue.getCurrentPlayer()) {
+                if (unit.isAI === true && unit !== currentPlayer) {
                     return true;
                 }
                 return false;
@@ -434,11 +436,11 @@ class GameLogic {
                 }
             });
             if (callUno >= 1 || byPlayer === true) {
-                this.queue.getCurrentPlayer().hand.push(this.randomCardGenerator());
-                this.queue.getCurrentPlayer().hand.push(this.randomCardGenerator());
-                this.deckSorter(this.queue.getCurrentPlayer());
-                this.queue.getCurrentPlayer().playerNode;
-                this.queue.getCurrentPlayer().unoCalledBox.isVisible = false;
+                currentPlayer.hand.push(this.randomCardGenerator());
+                currentPlayer.hand.push(this.randomCardGenerator());
+                currentPlayer.deckSorter();
+                currentPlayer.playerNode;
+                currentPlayer.unoCalledBox.isVisible = false;
             }
         };
         /**
@@ -550,7 +552,7 @@ class GameLogic {
             }
             else if (this.drawRate > 0) {
                 console.log(this.queue.getCurrentPlayer().name + " has drawn " + this.drawRate + " cards");
-                this.onBluckDraw();
+                this.onChunkDraw();
             }
             else if (playedCard.sign === "skip") {
                 this.onSkip();
@@ -564,7 +566,7 @@ class GameLogic {
                 this.wildColor = null;
             }
         };
-        this.onBluckDraw = () => {
+        this.onChunkDraw = () => {
             let drawArry = [];
             let currentPlayer = this.queue.getCurrentPlayer();
             for (let i = 0; i < this.drawRate; i++) {
@@ -580,7 +582,7 @@ class GameLogic {
             else {
                 currentPlayer.hand.push(...drawArry);
             }
-            this.deckSorter(currentPlayer);
+            currentPlayer.deckSorter();
             this.drawRate = 0;
         };
         this.onDraw4 = () => {
@@ -630,7 +632,8 @@ class GameLogic {
        * @param {*} playedCard The card to set as the faced down card
        */
         this.pilePusher = (playedCard) => __awaiter(this, void 0, void 0, function* () {
-            this.queue.getCurrentPlayer().hand.splice(this.queue.getCurrentPlayer().hand.indexOf(playedCard), 1);
+            let currentPlayer = this.queue.getCurrentPlayer();
+            currentPlayer.hand.splice(currentPlayer.hand.indexOf(playedCard), 1);
             let randomRotation = Math.random() * (2) + Math.PI;
             playedCard.mesh.position = new BABYLON.Vector3(0, this.pileStartingPos += 0.001, 0);
             playedCard.mesh.rotation = new BABYLON.Vector3(Math.PI * 0.5, 0, randomRotation);
@@ -638,48 +641,10 @@ class GameLogic {
             newpile.name = playedCard.cardInfo.name;
             this.pile = { mesh: newpile,
                 cardInfo: playedCard.cardInfo };
-            this.deckSorter(this.queue.getCurrentPlayer());
+            currentPlayer.deckSorter();
             if (this.musicControles.cardPlayedSound !== undefined) {
                 this.musicControles.cardPlayedSound.play();
             }
-        });
-        /**
-       * Sorts the cards and realign's them back to there space
-       * @param {*} player The player who's hand that will be sorted
-       */
-        this.deckSorter = (player) => __awaiter(this, void 0, void 0, function* () {
-            let playerHand = player.hand;
-            let placement = player.place;
-            let node = player.playerNode;
-            //Rearange order of cards to be alphabetical order
-            playerHand.sort((a, b) => (a.cardInfo.name >= b.cardInfo.name) ? 1 : -1);
-            //Instalise Starting postion
-            let startPositon = {
-                x: 0,
-                z: 0,
-            };
-            //Instalise side to increment
-            let increment = {
-                side: 0,
-                depth: 0
-            };
-            //What side should the cards face
-            let facing;
-            //Checks which player to sort 
-            placement === 0 ? (startPositon.x = 0, startPositon.z = 8, facing = Math.PI, increment.side = 0.4, increment.depth = 0.001)
-                : placement === 2 ? (startPositon.x = 0, startPositon.z = -8, facing = Math.PI * 2, increment.side = 0.4, increment.depth = 0.001)
-                    : placement === 3 ? (startPositon.x = 8, startPositon.z = 0, facing = Math.PI * 1.5, increment.side = 0.001, increment.depth = 0.4)
-                        : (startPositon.x = -8, startPositon.z = 0, facing = Math.PI * 0.5, increment.side = 0.001, increment.depth = 0.4);
-            node.position = new BABYLON.Vector3(startPositon.x, -2, startPositon.z);
-            //sorts deck of cards
-            playerHand.map(card => {
-                card.mesh.rotation = new BABYLON.Vector3(0.5, facing, 0);
-                card.mesh.position.x = startPositon.x;
-                card.mesh.position.y = -2;
-                card.mesh.position.z = startPositon.z;
-                startPositon.x += increment.side;
-                startPositon.z -= increment.depth;
-            });
         });
         /**
        * Turn order event system
@@ -712,7 +677,7 @@ class GameLogic {
             //If it's the AI's turn then the AI acts
             if (currentPlayer.isAI === true) {
                 this.setdrawBoxPickable(false);
-                this.queue.printQueue().forEach(player => player.setHandInteractable(false));
+                this.queue.printQueue().forEach(player => player.setHandPickable(false));
                 let cardCheckerLoop = currentPlayer.hand.map(card => this.playableChecker(card, this.wildColor)).filter(card => card.playable);
                 if (cardCheckerLoop.length > 0) {
                     setTimeout(() => {
@@ -731,7 +696,7 @@ class GameLogic {
                 else if (cardCheckerLoop.length <= 0) {
                     setTimeout(() => {
                         currentPlayer.hand.push(this.randomCardGenerator());
-                        this.deckSorter(currentPlayer);
+                        currentPlayer.deckSorter();
                         console.log(this.queue.getCurrentPlayer().name + " Drawing cards");
                         this.turnSystem();
                     }, 1000);
@@ -740,7 +705,7 @@ class GameLogic {
             //Else let the player act
             else if (currentPlayer.isAI === false) {
                 this.setdrawBoxPickable(true);
-                currentPlayer.setHandInteractable(true);
+                currentPlayer.setHandPickable(true);
                 console.log("Waiting for input");
             }
         };
@@ -822,7 +787,7 @@ class GameLogic {
         //                         ----------| Sound |------------
         this.musicControles = new audioControler_1.MusicControler(this.scene);
         this.musicControles.soundTrack.soundCollection[this.musicControles.currentTrack];
-        //------------------------------------------------------------------------------------------------------------
+        //---------------------------------------------------------------------------------------------
         // ------------------------------------ Arrow spin Control ------------------------------------
         this.spinRate = 0.01;
         this.arrowDirectionMesh = BABYLON.Mesh.CreateGround("Order Direction", 15, 15, 15, scene);
@@ -895,6 +860,7 @@ class GameLogic {
     ;
 }
 exports.GameLogic = GameLogic;
+;
 //In case orginal deck is currupted use this to back it up.
 // fs.writeFile("./deck.json", JSON.stringify(deck, null, 4), function (err) {
 //     if (err) throw err;
@@ -927,15 +893,81 @@ class Units {
         this.createHand = (gameLogic) => {
             for (let i = 0; i < gameSettings_json_1.default.startingCardCount; i++) {
                 let newCard = gameLogic.randomCardGenerator();
-                gameLogic.cardInteractionEffect(newCard);
+                if (this.isAI === false) {
+                    gameLogic.cardInteractionEffect(newCard);
+                }
                 this.hand.push(newCard);
             }
             this.updateCount();
-            gameLogic.deckSorter(this);
+            this.deckSorter();
         };
-        this.setHandInteractable = (state) => {
+        this.setHandPickable = (state) => {
             this.hand.forEach(card => card.mesh.isPickable = state);
         };
+        /**
+           * Sorts the cards and realign's them back to there space
+           */
+        this.deckSorter = () => __awaiter(this, void 0, void 0, function* () {
+            //Rearange order of cards to be alphabetical order
+            this.hand.sort((a, b) => (a.cardInfo.name >= b.cardInfo.name) ? 1 : -1);
+            //Instalise Starting postion
+            let startPositon = {
+                x: 0,
+                z: 0,
+            };
+            //Instalise side to increment
+            let increment = {
+                side: 0,
+                depth: 0
+            };
+            //What side should the cards face
+            const [UP, DOWN, LEFT, RIGHT] = [Math.PI * 2, Math.PI, Math.PI * 0.5, Math.PI * 1.5];
+            let facing;
+            //Checks which player to sort on what side 
+            //Down view
+            if (this.place === 0) {
+                startPositon.x = 0;
+                startPositon.z = 8;
+                facing = DOWN;
+                increment.side = 0.4;
+                increment.depth = 0.001;
+            }
+            //Up View
+            else if (this.place === 2) {
+                startPositon.x = 0;
+                startPositon.z = -8;
+                facing = UP;
+                increment.side = 0.4;
+                increment.depth = 0.001;
+            }
+            //Right View
+            else if (this.place === 3) {
+                startPositon.x = 8;
+                startPositon.z = 0;
+                facing = RIGHT;
+                increment.side = 0.001;
+                increment.depth = 0.4;
+            }
+            //Left View
+            else {
+                startPositon.x = -8;
+                startPositon.z = 0;
+                facing = LEFT;
+                increment.side = 0.001;
+                increment.depth = 0.4;
+            }
+            this.playerNode.position = new BABYLON.Vector3(startPositon.x, -2, startPositon.z);
+            //Groups the cards together in the final order
+            this.hand.map(card => {
+                card.mesh.rotation = new BABYLON.Vector3(0.5, facing, 0);
+                card.mesh.position.x = startPositon.x;
+                card.mesh.position.y = -2;
+                card.mesh.position.z = startPositon.z;
+                //Off set's card hight and distance from the last card
+                startPositon.x += increment.side;
+                startPositon.z -= increment.depth;
+            });
+        });
         this.name = name;
         this.hand = [];
         this.place = place == undefined ? 0 : place;

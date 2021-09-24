@@ -13,7 +13,7 @@ export class MusicControler{
     public drawnCardSound:BABYLON.Sound 
     private scene:BABYLON.Scene
  
-     constructor(scene:BABYLON.Scene){
+     constructor(scene:BABYLON.Scene,track?:number){
          this.scene = scene
          this.musicVolume = gameSettings.musicVol*0.6
          this.fxVolume =  gameSettings.fxVol*0.6
@@ -22,9 +22,10 @@ export class MusicControler{
          this.cardPlayedSound = this.loadAudio("drawn_card.wav") 
          this.soundTrack = this.loadAllMusic()
 
-         this.currentTrack = Math.round(Math.random()*this.soundTrack.soundCollection.length-1)
+         this.currentTrack = track === undefined ? Math.round(Math.random()*(this.soundTrack.soundCollection.length-1)) : track
          this.soundTrack.soundCollection[this.currentTrack].autoplay = true
  
+         if(track === undefined){
          this.soundTrack.soundCollection.forEach(track =>{
              this.soundTrack.soundCollection[this.currentTrack].autoplay = true
              track.onEndedObservable.add(()=>{
@@ -35,6 +36,7 @@ export class MusicControler{
                  this.soundTrack.soundCollection[this.currentTrack].play()
              })
          })
+        }
      }
      loadAllMusic = ()=>{
          let tracks = fs.readdirSync(path.join(__dirname,"../assets/audio/music/")).filter(d => d.endsWith(".mp3"||".wav"))

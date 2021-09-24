@@ -1,7 +1,7 @@
 {
-    "playerName": "player",
-    "botCount": 3,
+    "botCount": 1,
     "startingCardCount": 7,
-    "musicVol": 0.8,
-    "fxVol": 0.8
+    "musicVol": 0,
+    "fxVol": 0.8,
+    "playerName": "player"
 }

@@ -5,7 +5,7 @@ import {remote} from "electron"
 import gameSettings from "./settings/gameSettings.json"
 
 import {MusicControler} from "./audioControler"
- export interface Card{
+export interface Card{
     mesh:BABYLON.Mesh,
     cardInfo:{name:string,
     color:string|null,
@@ -412,7 +412,7 @@ export class GameLogic {
 this.musicControles = new MusicControler(this.scene)
 this.musicControles.soundTrack.soundCollection[this.musicControles.currentTrack]
 
-//------------------------------------------------------------------------------------------------------------
+//---------------------------------------------------------------------------------------------
 
 // ------------------------------------ Arrow spin Control ------------------------------------
     this.spinRate = 0.01;
@@ -489,9 +489,7 @@ this.unoTrigger.onPointerDownObservable.add(()=>{
 
     };
     private setUpDrawbox = () =>{
-        //------------------------------------| Draw box data |------------------------------------
-
-        
+        //------------------------------------| Draw box data |------------------------------------   
         let boxHightLigheter = new BABYLON.HighlightLayer("Draw box highlight",this.scene)
             boxHightLigheter.innerGlow = false 
             boxHightLigheter.outerGlow = false 
@@ -516,12 +514,13 @@ this.unoTrigger.onPointerDownObservable.add(()=>{
             }));
         // On Click
         this.drawBox.actionManager.registerAction(new BABYLON.ExecuteCodeAction(BABYLON.ActionManager.OnPickDownTrigger ,() =>{
+            let currentPlayer =  this.queue.getCurrentPlayer()
             let draw = this.randomCardGenerator()
-            this.queue.getCurrentPlayer().hand.unshift(draw)
-            this.deckSorter(this.queue.getCurrentPlayer())
-            if (this.queue.getCurrentPlayer().isAI === false) {
+            currentPlayer.hand.unshift(draw)
+            currentPlayer.deckSorter()
+            if (currentPlayer.isAI === false) {
                 this.cardInteractionEffect(draw)
-                this.queue.getCurrentPlayer().updateCount()}  
+                currentPlayer.updateCount()}  
             }))
     };
     setUnoButton = (state:boolean) =>{
@@ -529,8 +528,10 @@ this.unoTrigger.onPointerDownObservable.add(()=>{
         this.unoTrigger.isEnabled = state
     };
     onUnoCall = (byPlayer?:boolean) =>{
+        let currentPlayer = this.queue.getCurrentPlayer()
+
         let callers = this.queue.printQueue().filter(unit =>{ 
-            if(unit.isAI === true && unit !== this.queue.getCurrentPlayer()){
+            if(unit.isAI === true && unit !== currentPlayer){
                 return true
             }
             return false
@@ -543,11 +544,11 @@ this.unoTrigger.onPointerDownObservable.add(()=>{
         }
     })
     if ( callUno >= 1 || byPlayer === true ) {
-        this.queue.getCurrentPlayer().hand.push(this.randomCardGenerator())
-        this.queue.getCurrentPlayer().hand.push(this.randomCardGenerator())
-        this.deckSorter(this.queue.getCurrentPlayer())
-        this.queue.getCurrentPlayer().playerNode
-        this.queue.getCurrentPlayer().unoCalledBox.isVisible = false
+        currentPlayer.hand.push(this.randomCardGenerator())
+        currentPlayer.hand.push(this.randomCardGenerator())
+        currentPlayer.deckSorter()
+        currentPlayer.playerNode
+        currentPlayer.unoCalledBox.isVisible = false
     }
         
     };
@@ -660,7 +661,7 @@ this.unoTrigger.onPointerDownObservable.add(()=>{
             this.onDraw2()
         }else if(this.drawRate > 0){
             console.log(this.queue.getCurrentPlayer().name+" has drawn "+this.drawRate+" cards" )
-            this.onBluckDraw()
+            this.onChunkDraw()
         }else if(playedCard.sign === "skip"){
             this.onSkip()
             console.log(this.queue.getCurrentPlayer().name+" has been skiped")
@@ -671,8 +672,7 @@ this.unoTrigger.onPointerDownObservable.add(()=>{
             this.wildColor = null
         }
     }; 
-
-    onBluckDraw = () =>{
+private onChunkDraw = () =>{
     let drawArry = []
     let currentPlayer = this.queue.getCurrentPlayer()
 
@@ -689,17 +689,17 @@ this.unoTrigger.onPointerDownObservable.add(()=>{
         currentPlayer.hand.push(...drawArry)
     }
 
-    this.deckSorter(currentPlayer)
+    currentPlayer.deckSorter()
     this.drawRate = 0
     };
-    onDraw4 = () =>{
+private onDraw4 = () =>{
         this.drawRate+=4
         this.onWild()
     };
-    onDraw2 = () =>{
+private onDraw2 = () =>{
         this.drawRate+=2
     };
-    onWild = () =>{
+private onWild = () =>{
 
         let newColor = this.ColorControle.randomColor() 
         if(this.queue.getCurrentPlayer().isAI === true){
@@ -713,15 +713,14 @@ this.unoTrigger.onPointerDownObservable.add(()=>{
             this.ColorControle.setIsColorPickable(true)
         }
     };
-    onSkip = () =>{
+private onSkip = () =>{
         this.queue.movePlayerBack()
     };
-    onReverse = () =>{
+private onReverse = () =>{
         this.spinRate=-this.spinRate
         this.arrowDirectionMesh.rotation.x -= Math.PI
         this.queue.reverseOrder()
     };
-    
     playableChecker = (playedCard:Card,randColor:string|null = null) => {
 
         if (playedCard.cardInfo.sign === "wild" || playedCard.cardInfo.sign === "draw4") { //checks if a wild card or if a draw4 card was used
@@ -742,7 +741,8 @@ this.unoTrigger.onPointerDownObservable.add(()=>{
    * @param {*} playedCard The card to set as the faced down card
    */
     pilePusher = async (playedCard:Card)=>{
-        this.queue.getCurrentPlayer().hand.splice(this.queue.getCurrentPlayer().hand.indexOf(playedCard),1)
+        let currentPlayer = this.queue.getCurrentPlayer()
+        currentPlayer.hand.splice(currentPlayer.hand.indexOf(playedCard),1)
         let randomRotation = Math.random()*(2)+Math.PI
      
         playedCard.mesh.position = new BABYLON.Vector3(0,this.pileStartingPos+=0.001,0)
@@ -754,50 +754,11 @@ this.unoTrigger.onPointerDownObservable.add(()=>{
         this.pile = { mesh:newpile as BABYLON.Mesh,
             cardInfo:playedCard.cardInfo
         }
-        this.deckSorter(this.queue.getCurrentPlayer())
+        currentPlayer.deckSorter()
        if (this.musicControles.cardPlayedSound !== undefined) {
            this.musicControles.cardPlayedSound.play()
         }
-    };
-    /**
-   * Sorts the cards and realign's them back to there space
-   * @param {*} player The player who's hand that will be sorted
-   */
-    deckSorter = async (player:Units)=>{
-        let playerHand = player.hand
-        let placement = player.place
-        let node = player.playerNode
-        //Rearange order of cards to be alphabetical order
-            playerHand.sort((a, b) => (a.cardInfo.name >= b.cardInfo.name) ? 1 : -1);
-        //Instalise Starting postion
-            let startPositon ={
-                x:0,
-                z:0,
-             };
-        //Instalise side to increment
-            let increment = {
-                side:0,
-                depth:0
-            }
-        //What side should the cards face
-        let facing:number;
-         //Checks which player to sort 
-              placement === 0 ? (startPositon.x = 0, startPositon.z = 8,facing = Math.PI, increment.side = 0.4,increment.depth = 0.001)
-            : placement === 2 ? (startPositon.x = 0, startPositon.z = -8,facing = Math.PI*2, increment.side = 0.4 ,increment.depth = 0.001)
-            : placement === 3 ? (startPositon.x = 8, startPositon.z = 0,facing = Math.PI*1.5, increment.side = 0.001,increment.depth = 0.4) 
-            :                   (startPositon.x = -8,startPositon.z = 0,facing = Math.PI*0.5, increment.side = 0.001,increment.depth = 0.4)      
-          node.position = new BABYLON.Vector3(startPositon.x,-2,startPositon.z)
-        //sorts deck of cards
-         playerHand.map(card =>{
-            card.mesh.rotation = new BABYLON.Vector3(0.5,facing,0);
-            card.mesh.position.x = startPositon.x
-            card.mesh.position.y = -2
-            card.mesh.position.z = startPositon.z
-            startPositon.x += increment.side
-            startPositon.z -= increment.depth
-           
-         });
-    };  
+    }; 
     /**
    * Turn order event system
    */ 
@@ -833,7 +794,7 @@ this.unoTrigger.onPointerDownObservable.add(()=>{
     //If it's the AI's turn then the AI acts
     if (currentPlayer.isAI === true) {
         this.setdrawBoxPickable(false)
-        this.queue.printQueue().forEach(player => player.setHandInteractable(false))
+        this.queue.printQueue().forEach(player => player.setHandPickable(false))
 
        let cardCheckerLoop = currentPlayer.hand.map(card => this.playableChecker(card,this.wildColor)).filter(card => card.playable)
     
@@ -852,7 +813,7 @@ this.unoTrigger.onPointerDownObservable.add(()=>{
         }else if(cardCheckerLoop.length <= 0){
             setTimeout(() => {
                 currentPlayer.hand.push(this.randomCardGenerator())
-                this.deckSorter(currentPlayer)
+                currentPlayer.deckSorter()
                 console.log(this.queue.getCurrentPlayer().name+" Drawing cards")
                 this.turnSystem()  
             }, 1000);      
@@ -861,7 +822,7 @@ this.unoTrigger.onPointerDownObservable.add(()=>{
     //Else let the player act
     else if(currentPlayer.isAI === false){
         this.setdrawBoxPickable(true)
-        currentPlayer.setHandInteractable(true)
+        currentPlayer.setHandPickable(true)
 
         console.log("Waiting for input")
     }
@@ -937,8 +898,8 @@ this.unoTrigger.onPointerDownObservable.add(()=>{
         button.addControl(buttonText)
         
         return button
-        }
-}
+    };
+};
 
 //In case orginal deck is currupted use this to back it up.
 // fs.writeFile("./deck.json", JSON.stringify(deck, null, 4), function (err) {
@@ -962,7 +923,7 @@ export let playedCardAnimation = async (mesh:BABYLON.Mesh)=>{
       playedCardAnim.setKeys(keys);
       mesh.animations = [];
       mesh.animations.push(playedCardAnim);
-}
+};
 export class Units {
     readonly name:string
     public hand:Card[] = []
@@ -1003,16 +964,84 @@ export class Units {
     createHand = (gameLogic:GameLogic) =>{
         for (let i = 0; i < gameSettings.startingCardCount; i++) {
             let newCard = gameLogic.randomCardGenerator()
-            gameLogic.cardInteractionEffect(newCard)
-            this.hand.push(newCard)
+            if (this.isAI === false) {
+                gameLogic.cardInteractionEffect(newCard)
+            }
+            this.hand.push(newCard)   
         }
         this.updateCount()
-        gameLogic.deckSorter(this)
+        this.deckSorter()
     }
-    setHandInteractable = (state:boolean) => {
+    setHandPickable = (state:boolean) => {
         this.hand.forEach(card =>  card.mesh.isPickable = state )
 }
+/**
+   * Sorts the cards and realign's them back to there space
+   */
+deckSorter = async ()=>{
+    //Rearange order of cards to be alphabetical order
+        this.hand.sort((a, b) => (a.cardInfo.name >= b.cardInfo.name) ? 1 : -1);
+    //Instalise Starting postion
+        let startPositon ={
+            x:0,
+            z:0,
+         };
+    //Instalise side to increment
+        let increment = {
+            side:0,
+            depth:0
+        }
+    //What side should the cards face
+    const [UP,DOWN,LEFT,RIGHT] = [Math.PI*2,Math.PI,Math.PI*0.5,Math.PI*1.5]
+    let facing:number;
 
+    //Checks which player to sort on what side 
+        //Down view
+        if(this.place === 0)  {
+            startPositon.x = 0
+            startPositon.z = 8
+            facing = DOWN
+            increment.side = 0.4
+            increment.depth = 0.001
+        }
+        //Up View
+        else if (this.place === 2)  {
+            startPositon.x = 0
+            startPositon.z = -8
+            facing = UP
+            increment.side = 0.4 
+            increment.depth = 0.001
+        }
+        //Right View
+        else if (this.place === 3) {
+            startPositon.x = 8
+            startPositon.z = 0
+            facing = RIGHT
+            increment.side = 0.001
+            increment.depth = 0.4
+         }
+        //Left View
+        else{
+            startPositon.x = -8
+            startPositon.z = 0
+            facing = LEFT
+            increment.side = 0.001
+            increment.depth = 0.4
+        }
+
+      this.playerNode.position = new BABYLON.Vector3(startPositon.x,-2,startPositon.z)
+    
+    //Groups the cards together in the final order
+     this.hand.map(card =>{
+        card.mesh.rotation = new BABYLON.Vector3(0.5,facing,0);
+        card.mesh.position.x = startPositon.x
+        card.mesh.position.y = -2
+        card.mesh.position.z = startPositon.z
+        //Off set's card hight and distance from the last card
+        startPositon.x += increment.side
+        startPositon.z -= increment.depth
+     });
+};  
 }
 
 export class Queue {

@@ -37,7 +37,7 @@ const fs_1 = __importDefault(require("fs"));
 const path_1 = __importDefault(require("path"));
 const gameSettings_json_1 = __importDefault(require("./settings/gameSettings.json"));
 class MusicControler {
-    constructor(scene) {
+    constructor(scene, track) {
         this.loadAllMusic = () => {
             let tracks = fs_1.default.readdirSync(path_1.default.join(__dirname, "../assets/audio/music/")).filter(d => d.endsWith(".mp3" || ".wav"));
             let soundTrack = new BABYLON.SoundTrack(this.scene, {
@@ -57,18 +57,20 @@ class MusicControler {
         this.drawnCardSound = this.loadAudio("played_card.wav");
         this.cardPlayedSound = this.loadAudio("drawn_card.wav");
         this.soundTrack = this.loadAllMusic();
-        this.currentTrack = Math.round(Math.random() * this.soundTrack.soundCollection.length - 1);
+        this.currentTrack = track === undefined ? Math.round(Math.random() * (this.soundTrack.soundCollection.length - 1)) : track;
         this.soundTrack.soundCollection[this.currentTrack].autoplay = true;
-        this.soundTrack.soundCollection.forEach(track => {
-            this.soundTrack.soundCollection[this.currentTrack].autoplay = true;
-            track.onEndedObservable.add(() => {
-                this.currentTrack++;
-                if (this.currentTrack >= this.soundTrack.soundCollection.length) {
-                    this.currentTrack = 0;
-                }
-                this.soundTrack.soundCollection[this.currentTrack].play();
+        if (track === undefined) {
+            this.soundTrack.soundCollection.forEach(track => {
+                this.soundTrack.soundCollection[this.currentTrack].autoplay = true;
+                track.onEndedObservable.add(() => {
+                    this.currentTrack++;
+                    if (this.currentTrack >= this.soundTrack.soundCollection.length) {
+                        this.currentTrack = 0;
+                    }
+                    this.soundTrack.soundCollection[this.currentTrack].play();
+                });
             });
-        });
+        }
     }
 }
 exports.MusicControler = MusicControler;
