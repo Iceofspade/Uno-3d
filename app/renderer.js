@@ -45,27 +45,26 @@ class SceneHandler {
         this.setCanvas = (canvas) => __awaiter(this, void 0, void 0, function* () {
             this.canvas = canvas;
             this.engine = new BABYLON.Engine(this.canvas, true);
+            this.scene = new BABYLON.Scene(this.engine);
         });
         // Setting the new scene to render
         this.setScene = (sceneName) => __awaiter(this, void 0, void 0, function* () {
-            this.loadScenes().then(() => {
-                let i = 1;
-                for (let scene of this.sceneList) {
-                    let pulledScene = require(path_1.default.join(__dirname, `scenes/${scene}`));
-                    if (pulledScene.app.name === sceneName) {
-                        this.scene != undefined ? (this.scene.dispose(), this.scene = pulledScene.app.scene(this.engine, this.canvas))
-                            : this.scene = pulledScene.app.scene(this.engine, this.canvas);
-                        break;
-                    }
-                    else if (i === this.sceneList.length && this.scene === undefined) {
-                        console.error(`Attempted to load none existing scene.
+            let i = 1;
+            for (let scene of this.sceneList) {
+                let pulledScene = require(path_1.default.join(__dirname, `scenes/${scene}`));
+                if (pulledScene.app.name === sceneName) {
+                    this.scene != undefined ? (this.scene.dispose(), this.scene = pulledScene.app.scene(this.engine, this.canvas))
+                        : this.scene = pulledScene.app.scene(this.engine, this.canvas);
+                    break;
+                }
+                else if (i === this.sceneList.length && this.scene === undefined) {
+                    console.error(`Attempted to load none existing scene.
                 "${sceneName}" does not belong to any scene name.
                 Switching to default scene.`);
-                        this.scene = this.defaultScene();
-                    }
-                    i++;
+                    this.scene = this.defaultScene();
                 }
-            });
+                i++;
+            }
         });
         this.getScene = () => {
             return this.scene;
@@ -89,6 +88,7 @@ class SceneHandler {
         this.engine;
         this.canvas;
         this.scene;
+        this.loadScenes();
     }
     // Start rendering of scene
     initialize() {
@@ -100,7 +100,6 @@ class SceneHandler {
     }
 }
 let handler = new SceneHandler();
-exports.default = handler;
 window.addEventListener('DOMContentLoaded', function () {
     handler.setCanvas(document.getElementById('renderCanvas')).then(() => {
         //Rename test to what ever you want the starting scene to be      
@@ -112,3 +111,4 @@ window.addEventListener('DOMContentLoaded', function () {
         });
     });
 });
+exports.default = handler;

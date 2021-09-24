@@ -18,7 +18,7 @@ class SceneHandler{
         this.engine;
         this.canvas;
         this.scene;
- 
+        this.loadScenes()
         }
     //Get the name of all files that have a scene that can be rendered
         loadScenes =async()=>{
@@ -28,10 +28,10 @@ class SceneHandler{
         setCanvas = async (canvas:HTMLCanvasElement)=>{
             this.canvas = canvas
             this.engine = new BABYLON.Engine(this.canvas, true);
+            this.scene = new BABYLON.Scene(this.engine)
         }
         // Setting the new scene to render
         setScene = async (sceneName:string)=>{
-            this.loadScenes().then(()=>{
                 let i = 1
                 for (let scene of this.sceneList){
             let pulledScene = require(path.join(__dirname,`scenes/${scene}`) )
@@ -48,7 +48,6 @@ class SceneHandler{
                        }
                 i++
                 }
-        })
         }
         getScene = () =>{
             return this.scene
@@ -82,7 +81,6 @@ class SceneHandler{
         }
     }
     let handler = new SceneHandler()
-export default handler
     window.addEventListener('DOMContentLoaded', function(){
         handler.setCanvas(document.getElementById('renderCanvas') as HTMLCanvasElement).then(()=>{
             //Rename test to what ever you want the starting scene to be      
@@ -95,4 +93,4 @@ export default handler
             });
         })
      })
-   
+export default handler
