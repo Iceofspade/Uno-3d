@@ -32,11 +32,8 @@ exports.app = {
     scene: (engine, canvas) => {
         let scene = new BABYLON.Scene(engine);
         let camera = new BABYLON.ArcRotateCamera("Camera1", Math.PI * 0.5, 1, 20, BABYLON.Vector3.Zero(), scene);
-        // camera.attachControl(false)
-        // camera.position = new BABYLON.Vector3(0.020214147902387798,9.45532463776953,18.095283776200585)
         let camera2 = new BABYLON.ArcRotateCamera("Camera2", Math.PI * 0.5, 0, 30, BABYLON.Vector3.Zero(), scene);
         camera2.attachControl(true);
-        // let light = new BABYLON.PointLight("light", new BABYLON.Vector3(0,4,-5),scene) 
         scene.debugLayer.show();
         let queue = new Logic.Queue();
         let AdvancedDynamicTexture = GUI.AdvancedDynamicTexture.CreateFullscreenUI("UI");
