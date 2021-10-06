@@ -37,23 +37,22 @@ exports.app = {
         let scene = new BABYLON.Scene(engine);
         let camera = new BABYLON.ArcRotateCamera("Camera1", 1.5, 0, 10, BABYLON.Vector3.Zero(), scene);
         camera.attachControl(true);
-        let subButtonMaker = (name) => {
+        let subButtonMaker = (name, control) => {
             let button = new GUI.Button(name);
-            button.widthInPixels = 80;
-            button.heightInPixels = 50;
+            button.widthInPixels = 100;
+            button.heightInPixels = 55;
             button.paddingLeftInPixels = 10;
+            button.paddingRightInPixels = 10;
             button.paddingBottomInPixels = 10;
             button.paddingTopInPixels = 10;
-            button.horizontalAlignment = GUI.Control.HORIZONTAL_ALIGNMENT_RIGHT;
             button.background = "green";
             button.paddingBottomInPixels = 10;
-            gameStateStack.addControl(button);
+            control.addControl(button);
             let buttonText = new GUI.TextBlock(name + " text", name);
             buttonText.fontFamily = "Rockwell";
             button.addControl(buttonText);
             return button;
         };
-        GUI.StackPanel;
         let mainButtonMaker = (name, control) => {
             let button = new GUI.Button(name);
             button.widthInPixels = 150;
@@ -66,7 +65,7 @@ exports.app = {
             button.addControl(buttonText);
             return button;
         };
-        let sliderMaker = (name, min, max) => {
+        let sliderMaker = (name, min, max, control) => {
             let sliderBox = new GUI.Rectangle(name + " box");
             sliderBox.width = 0.9;
             sliderBox.heightInPixels = 80;
@@ -74,7 +73,7 @@ exports.app = {
             sliderBox.paddingTopInPixels = 15;
             sliderBox.background = "#C20015";
             sliderBox.fontFamily = "Rockwell";
-            optionsBox.addControl(sliderBox);
+            control.addControl(sliderBox);
             let sliderName = new GUI.TextBlock(name + " text", name);
             sliderName.textVerticalAlignment = GUI.Control.VERTICAL_ALIGNMENT_TOP;
             sliderName.textHorizontalAlignment = GUI.Control.HORIZONTAL_ALIGNMENT_LEFT;
@@ -166,7 +165,7 @@ exports.app = {
         gameStateStack.verticalAlignment = GUI.Control.VERTICAL_ALIGNMENT_BOTTOM;
         gameStateStack.isVertical = false;
         optionsBoxContainer.addControl(gameStateStack);
-        let musicVolume = sliderMaker("Music Volume", 0, 100);
+        let musicVolume = sliderMaker("Music Volume", 0, 100, optionsBox);
         musicVolume.slider.value = gameSettings_json_1.default.musicVol * 100;
         musicVolume.SliderText.text = `${musicVolume.slider.value}`;
         musicVolume.slider.onValueChangedObservable.add(() => {
@@ -174,7 +173,7 @@ exports.app = {
             gameSettings_json_1.default.musicVol = musicVolume.slider.value / 100;
             menuMusic.setVolume(musicVolume.slider.value / 100);
         });
-        let fxVolume = sliderMaker("Sound effects Volume", 0, 100);
+        let fxVolume = sliderMaker("Sound effects Volume", 0, 100, optionsBox);
         fxVolume.slider.value = gameSettings_json_1.default.fxVol * 100;
         fxVolume.SliderText.text = `${fxVolume.slider.value}`;
         fxVolume.slider.onValueChangedObservable.add(() => {
@@ -182,13 +181,13 @@ exports.app = {
             gameSettings_json_1.default.fxVol = fxVolume.slider.value / 100;
             menuMusic.setVolume(fxVolume.slider.value / 100);
         });
-        let botCount = sliderMaker("Number of Bots ", 1, 3);
+        let botCount = sliderMaker("Number of Bots ", 1, 3, optionsBox);
         botCount.slider.value = gameSettings_json_1.default.botCount;
         botCount.SliderText.text = `${botCount.slider.value}`;
         botCount.slider.onValueChangedObservable.add(() => {
             botCount.SliderText.text = `${botCount.slider.value}`;
         });
-        let startingHandSize = sliderMaker("Starting cards ", 1, 99);
+        let startingHandSize = sliderMaker("Starting cards ", 1, 99, optionsBox);
         startingHandSize.slider.value = gameSettings_json_1.default.startingCardCount;
         startingHandSize.SliderText.text = `${startingHandSize.slider.value}`;
         startingHandSize.slider.onValueChangedObservable.add(() => {
@@ -197,15 +196,12 @@ exports.app = {
         let fullscreenText = new GUI.TextBlock("to fullscreen text", "Fullscreen");
         fullscreenText.textHorizontalAlignment = GUI.Control.HORIZONTAL_ALIGNMENT_LEFT;
         optionsBox.addControl(fullscreenText);
-        let tofullscreen = new GUI.RadioButton("to fullscreen");
-        tofullscreen.horizontalAlignment = GUI.Control.HORIZONTAL_ALIGNMENT_RIGHT;
-        tofullscreen.heightInPixels = 30;
-        tofullscreen.widthInPixels = 30;
-        optionsBox.addControl(tofullscreen);
         //------------------------------------------------------------------------------
         //------- Options menu buttons -------
-        let defaultSetting = subButtonMaker("Default");
+        let defaultSetting = subButtonMaker("Default", optionsBoxContainer);
         defaultSetting.background = "grey";
+        defaultSetting.horizontalAlignment = GUI.Control.HORIZONTAL_ALIGNMENT_LEFT;
+        defaultSetting.verticalAlignment = GUI.Control.VERTICAL_ALIGNMENT_BOTTOM;
         defaultSetting.onPointerDownObservable.add(() => {
             gameSettings_json_1.default.botCount = 3;
             gameSettings_json_1.default.startingCardCount = 7;
@@ -223,8 +219,10 @@ exports.app = {
                     throw err;
             });
         });
-        let saveButton = subButtonMaker("Save");
+        let saveButton = subButtonMaker("Save", optionsBoxContainer);
         saveButton.background = "green";
+        saveButton.horizontalAlignment = GUI.Control.HORIZONTAL_ALIGNMENT_CENTER;
+        saveButton.verticalAlignment = GUI.Control.VERTICAL_ALIGNMENT_BOTTOM;
         saveButton.onPointerDownObservable.add(() => {
             let newSetting = {
                 botCount: botCount.slider.value,
@@ -239,8 +237,10 @@ exports.app = {
                     throw err;
             });
         });
-        let cancelButton = subButtonMaker("Cancel");
+        let cancelButton = subButtonMaker("Cancel", optionsBoxContainer);
         cancelButton.background = "red";
+        cancelButton.horizontalAlignment = GUI.Control.HORIZONTAL_ALIGNMENT_RIGHT;
+        cancelButton.verticalAlignment = GUI.Control.VERTICAL_ALIGNMENT_BOTTOM;
         cancelButton.onPointerDownObservable.add(() => {
             botCount.slider.value = gameSettings_json_1.default.botCount;
             startingHandSize.slider.value = gameSettings_json_1.default.startingCardCount;
@@ -248,13 +248,25 @@ exports.app = {
             startingHandSize.SliderText.text = `${startingHandSize.slider.value}`;
             optionsBoxContainer.isVisible = false;
         });
-        //-----------------------------------------------
+        //--------------------Loading Menu---------------------------
+        let LoadeingScreem = new GUI.Rectangle("Loading screen");
+        LoadeingScreem.width = 1;
+        LoadeingScreem.height = 1;
+        LoadeingScreem.background = "Gray";
+        LoadeingScreem.isVisible = false;
+        menuBackground.addControl(LoadeingScreem);
+        let loadingText = new GUI.TextBlock("loaing text", "Waiting for players\n 1/4");
+        loadingText.textVerticalAlignment = GUI.Control.VERTICAL_ALIGNMENT_CENTER;
+        loadingText.fontSize = 90;
+        LoadeingScreem.addControl(loadingText);
+        //------------------------------------------------------------
         let serverUI = () => {
             let serverMenu = new GUI.Rectangle("Server menu container");
             serverMenu.width = 0.3;
             serverMenu.height = 0.2;
             serverMenu.background = "brown";
             serverMenu.isVisible = false;
+            serverMenu.topInPixels = -50;
             menuBackground.addControl(serverMenu);
             let block = new GUI.Rectangle("Name input block");
             block.heightInPixels = 30;
@@ -275,73 +287,26 @@ exports.app = {
             nameInput.focusedBackground = "grey";
             nameInput.color = "black";
             block.addControl(nameInput);
-            let sliderBox = new GUI.Rectangle("bot count box");
-            sliderBox.width = 0.9;
-            sliderBox.heightInPixels = 80;
-            sliderBox.paddingBottomInPixels = 15;
-            sliderBox.paddingTopInPixels = 15;
-            sliderBox.background = "#C20015";
-            sliderBox.fontFamily = "Rockwell";
-            sliderBox.verticalAlignment = GUI.Control.VERTICAL_ALIGNMENT_CENTER;
-            serverMenu.addControl(sliderBox);
-            let sliderName = new GUI.TextBlock(" text", "Number of AIs");
-            sliderName.textVerticalAlignment = GUI.Control.VERTICAL_ALIGNMENT_TOP;
-            sliderName.textHorizontalAlignment = GUI.Control.HORIZONTAL_ALIGNMENT_LEFT;
-            sliderBox.addControl(sliderName);
-            let sliderText = new GUI.TextBlock("bots text", `${1}`);
-            sliderText.textVerticalAlignment = GUI.Control.VERTICAL_ALIGNMENT_TOP;
-            sliderText.textHorizontalAlignment = GUI.Control.HORIZONTAL_ALIGNMENT_RIGHT;
-            sliderBox.addControl(sliderText);
-            let slider = new GUI.Slider("bot slider");
-            slider.background = "#CF9693";
-            slider.color = "#E82518";
-            slider.verticalAlignment = GUI.Control.VERTICAL_ALIGNMENT_BOTTOM;
-            slider.height = 0.4;
-            slider.value = 1;
-            slider.maximum = 3;
-            slider.minimum = 0;
-            slider.step = 1;
-            sliderBox.addControl(slider);
-            sliderText.text = `${slider.value}`;
-            slider.onValueChangedObservable.add(() => {
-                sliderText.text = `${slider.value}`;
-            });
-            let join = new GUI.Button("Join button");
-            join.widthInPixels = 150;
-            join.heightInPixels = 60;
-            join.background = "green";
-            join.paddingBottomInPixels = 10;
-            join.paddingRightInPixels = 10;
+            let join = subButtonMaker("Join", serverMenu);
             join.verticalAlignment = GUI.Control.VERTICAL_ALIGNMENT_BOTTOM;
             join.horizontalAlignment = GUI.Control.HORIZONTAL_ALIGNMENT_RIGHT;
-            serverMenu.addControl(join);
-            let joinText = new GUI.TextBlock("Join text", "Join");
-            joinText.fontFamily = "Rockwell";
-            join.addControl(joinText);
-            let host = new GUI.Button("Host button");
-            host.widthInPixels = 150;
-            host.heightInPixels = 60;
-            host.background = "green";
-            host.paddingBottomInPixels = 10;
-            host.paddingLeftInPixels = 10;
+            // join.textBlock!.fontFamily = "Rockwell"
+            join.onPointerClickObservable.add(() => {
+                LoadeingScreem.isVisible = true;
+                serverMenu.isVisible = false;
+            });
+            let host = subButtonMaker("Host", serverMenu);
             host.verticalAlignment = GUI.Control.VERTICAL_ALIGNMENT_BOTTOM;
             host.horizontalAlignment = GUI.Control.HORIZONTAL_ALIGNMENT_LEFT;
-            serverMenu.addControl(host);
-            let hostText = new GUI.TextBlock("Host text", "Host");
-            hostText.fontFamily = "Rockwell";
-            host.addControl(hostText);
-            let cancle = new GUI.Button("Cancle button");
-            cancle.widthInPixels = 150;
-            cancle.heightInPixels = 60;
-            cancle.background = "green";
-            cancle.paddingBottomInPixels = 10;
-            cancle.paddingLeftInPixels = 10;
+            // host.textBlock!.fontFamily = "Rockwell"
+            host.onPointerClickObservable.add(() => {
+                LoadeingScreem.isVisible = true;
+                serverMenu.isVisible = false;
+            });
+            let cancle = subButtonMaker("Cancle", serverMenu);
             cancle.verticalAlignment = GUI.Control.VERTICAL_ALIGNMENT_BOTTOM;
             cancle.horizontalAlignment = GUI.Control.HORIZONTAL_ALIGNMENT_CENTER;
-            serverMenu.addControl(cancle);
-            let cancleText = new GUI.TextBlock("Cancle text", "Cancle");
-            cancleText.fontFamily = "Rockwell";
-            cancle.addControl(cancleText);
+            // cancle.textBlock!.fontFamily = "Rockwell"
             cancle.onPointerClickObservable.add(() => {
                 serverMenu.isVisible = false;
             });
