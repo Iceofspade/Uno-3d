@@ -23,14 +23,15 @@ var __importDefault = (this && this.__importDefault) || function (mod) {
 };
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.app = void 0;
+const fs_1 = __importDefault(require("fs"));
+const path_1 = __importDefault(require("path"));
+const electron = __importStar(require("electron"));
 const BABYLON = __importStar(require("babylonjs"));
 const GUI = __importStar(require("babylonjs-gui"));
 const renderer_1 = __importDefault(require("../renderer"));
 const gameSettings_json_1 = __importDefault(require("../settings/gameSettings.json"));
-const fs_1 = __importDefault(require("fs"));
-const path_1 = __importDefault(require("path"));
-const electron = __importStar(require("electron"));
 const audioControler_1 = require("../audioControler");
+const serverConnect_1 = __importDefault(require("../client Events/serverConnect"));
 exports.app = {
     name: "MenuScene",
     scene: (engine, canvas) => {
@@ -294,6 +295,7 @@ exports.app = {
             join.onPointerClickObservable.add(() => {
                 LoadeingScreem.isVisible = true;
                 serverMenu.isVisible = false;
+                serverConnect_1.default.connect();
             });
             let host = subButtonMaker("Host", serverMenu);
             host.verticalAlignment = GUI.Control.VERTICAL_ALIGNMENT_BOTTOM;
@@ -302,6 +304,7 @@ exports.app = {
             host.onPointerClickObservable.add(() => {
                 LoadeingScreem.isVisible = true;
                 serverMenu.isVisible = false;
+                serverConnect_1.default.connect();
             });
             let cancle = subButtonMaker("Cancle", serverMenu);
             cancle.verticalAlignment = GUI.Control.VERTICAL_ALIGNMENT_BOTTOM;

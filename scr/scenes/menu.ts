@@ -1,11 +1,12 @@
+import fs from "fs"
+import path from 'path'
+import * as electron  from 'electron' 
 import * as BABYLON from "babylonjs"
 import * as GUI from "babylonjs-gui"
 import sceenControl from "../renderer"  
 import gameSettings from "../settings/gameSettings.json"
-import fs from "fs"
-import path from 'path'
-import * as electron  from 'electron' 
 import {MusicControler} from "../audioControler"
+import client from "../client Events/serverConnect"
 export let app ={ 
     name:"MenuScene",
     scene: (engine:BABYLON.Engine,canvas:HTMLCanvasElement)=>{
@@ -310,6 +311,8 @@ let serverUI = () =>{
     join.onPointerClickObservable.add(()=> {
         LoadeingScreem.isVisible = true
         serverMenu.isVisible = false
+        client.connect()
+
     })
 
 
@@ -320,6 +323,7 @@ let serverUI = () =>{
     host.onPointerClickObservable.add(()=> {
         LoadeingScreem.isVisible = true
         serverMenu.isVisible = false
+        client.connect()
     })
 
     let cancle = subButtonMaker("Cancle",serverMenu)

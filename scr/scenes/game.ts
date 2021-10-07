@@ -1,9 +1,9 @@
+import fs from "fs"
 import * as BABYLON from "babylonjs"
 import * as GUI from "babylonjs-gui"
 import * as loaders from "babylonjs-loaders"
 import * as Logic from "../logic"
 import gameSettings from "../settings/gameSettings.json"
-import fs from "fs"
 
 export let app ={  
     name:"GameScene",
