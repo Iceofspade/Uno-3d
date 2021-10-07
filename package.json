@@ -9,6 +9,7 @@
     "server": "nodemon ./app/server/server.js",
     "watchfiles": "tsc -w"
   },
+  
   "author": "Spade",
   "license": "ISC",
   "dependencies": {
