@@ -9,6 +9,8 @@ export let app ={
     name:"GameScene",
     scene: (engine:BABYLON.Engine,canvas:HTMLCanvasElement)=>{
     let scene = new  BABYLON.Scene(engine)
+    scene.debugLayer.show()
+
     let camera = new BABYLON.ArcRotateCamera("Camera1",Math.PI*0.5,1,20,BABYLON.Vector3.Zero(),scene)
     let camera2 = new BABYLON.ArcRotateCamera("Camera2",Math.PI*0.5,0,30,BABYLON.Vector3.Zero(),scene)
     camera2.attachControl(true)
@@ -31,30 +33,30 @@ ground.material = tableImg
 //---------------------------------------------------------------------
  
 //Game order Visual
-let player = new Logic.Units(gameSettings.playerName,AdvancedDynamicTexture)
-let createBot = (place:number,name:string)=>{
-    let AIs = new Logic.Units(`${name} ${place}`,AdvancedDynamicTexture,place,true)
-// AIs.setNode(scene) 
- AIs.createHand(gameLogic)
- queue.addPlayer(AIs)
-}
+// let player = new Logic.Units(gameSettings.playerName,AdvancedDynamicTexture)
+// let createBot = (place:number,name:string)=>{
+//     let AIs = new Logic.Units(`${name} ${place}`,AdvancedDynamicTexture,place,true)
+// // AIs.setNode(scene) 
+//  AIs.createHand(gameLogic)
+//  queue.addPlayer(AIs)
+// }
  
 
-//Generate Player hand of cards and player to queue
-player.createHand(gameLogic)
-queue.addPlayer(player)
+// //Generate Player hand of cards and player to queue
+// player.createHand(gameLogic)
+// queue.addPlayer(player)
 
-//For test only--------------------------------------------------------
-let newCard = gameLogic.cardMaker(Logic.deck[(Logic.deck.length-1)])
-gameLogic.cardInteractionEffect(newCard)
-player.hand.push(newCard)
-//---------------------------------------------------------------------
+// //For test only--------------------------------------------------------
+// let newCard = gameLogic.cardMaker(Logic.deck[(Logic.deck.length-1)])
+// gameLogic.cardInteractionEffect(newCard)
+// player.hand.push(newCard)
+// //---------------------------------------------------------------------
 
-//Generate AI player
-let botNames = ["JamesBot","Funkybot","MonkeyBot"]
-for (let i = 1; i <= gameSettings.botCount; i++) {
-    createBot(i,botNames[i-1])
-    }
+// //Generate AI player
+// let botNames = ["JamesBot","Funkybot","MonkeyBot"]
+// for (let i = 1; i <= gameSettings.botCount; i++) {
+//     createBot(i,botNames[i-1])
+//     }
 
     let playerPostions = {
         p1:Math.PI*0.5,
@@ -90,7 +92,7 @@ let s = 1
         }
 		})
 
-gameLogic.turnSystem()
+// gameLogic.turnSystem()
 
 return scene
     }}

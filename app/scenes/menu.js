@@ -32,9 +32,11 @@ const renderer_1 = __importDefault(require("../renderer"));
 const gameSettings_json_1 = __importDefault(require("../settings/gameSettings.json"));
 const audioControler_1 = require("../audioControler");
 const serverConnect_1 = __importDefault(require("../client Events/serverConnect"));
+const server_1 = require("../server/server");
 exports.app = {
     name: "MenuScene",
     scene: (engine, canvas) => {
+        var _a;
         let scene = new BABYLON.Scene(engine);
         let camera = new BABYLON.ArcRotateCamera("Camera1", 1.5, 0, 10, BABYLON.Vector3.Zero(), scene);
         camera.attachControl(true);
@@ -256,10 +258,41 @@ exports.app = {
         LoadeingScreem.background = "Gray";
         LoadeingScreem.isVisible = false;
         menuBackground.addControl(LoadeingScreem);
-        let loadingText = new GUI.TextBlock("loaing text", "Waiting for players\n 1/4");
-        loadingText.textVerticalAlignment = GUI.Control.VERTICAL_ALIGNMENT_CENTER;
+        let loadingText = new GUI.TextBlock("loading text", "Waiting for players\n 1/4");
+        loadingText.textVerticalAlignment = GUI.Control.VERTICAL_ALIGNMENT_TOP;
+        loadingText.paddingTopInPixels = 50;
         loadingText.fontSize = 90;
         LoadeingScreem.addControl(loadingText);
+        let loadedPlayersBox = new GUI.Rectangle("Loaded players box");
+        loadedPlayersBox.width = 1;
+        loadedPlayersBox.height = 0.3;
+        loadedPlayersBox.background = "grey";
+        loadedPlayersBox.verticalAlignment = GUI.Control.VERTICAL_ALIGNMENT_BOTTOM;
+        LoadeingScreem.addControl(loadedPlayersBox);
+        let connectedUsersBox = new GUI.StackPanel("connectedUsersBox");
+        connectedUsersBox.isVertical = false;
+        connectedUsersBox.width = 1;
+        connectedUsersBox.height = 1;
+        connectedUsersBox.paddingLeft = "10px";
+        connectedUsersBox.paddingRight = "10px";
+        loadedPlayersBox.addControl(connectedUsersBox);
+        let addedConnected = (playerName) => {
+            let notch = new GUI.Rectangle("notch");
+            notch.width = "200px";
+            notch.height = "100px";
+            notch.background = "green";
+            notch.paddingRight = "10px";
+            connectedUsersBox.addControl(notch);
+            let playerNameText = new GUI.TextBlock("playerName text", playerName);
+            playerNameText.textVerticalAlignment = GUI.Control.VERTICAL_ALIGNMENT_CENTER;
+            // playerName.fontSize = 90
+            playerNameText.textWrapping = true;
+            notch.addControl(playerNameText);
+        };
+        addedConnected(gameSettings_json_1.default.playerName);
+        (_a = serverConnect_1.default.socket) === null || _a === void 0 ? void 0 : _a.on("UpdateWaitingList", (name) => {
+            addedConnected(name);
+        });
         //------------------------------------------------------------
         let serverUI = () => {
             let serverMenu = new GUI.Rectangle("Server menu container");
@@ -293,18 +326,20 @@ exports.app = {
             join.horizontalAlignment = GUI.Control.HORIZONTAL_ALIGNMENT_RIGHT;
             // join.textBlock!.fontFamily = "Rockwell"
             join.onPointerClickObservable.add(() => {
-                LoadeingScreem.isVisible = true;
+                var _a, _b;
                 serverMenu.isVisible = false;
-                serverConnect_1.default.connect();
+                serverConnect_1.default.initialize();
+                (_a = serverConnect_1.default.socket) === null || _a === void 0 ? void 0 : _a.connect().emit("PlayerJoin").connected;
+                console.log((_b = serverConnect_1.default.socket) === null || _b === void 0 ? void 0 : _b.connected);
+                isLoadingScreenVisible(true);
             });
             let host = subButtonMaker("Host", serverMenu);
             host.verticalAlignment = GUI.Control.VERTICAL_ALIGNMENT_BOTTOM;
             host.horizontalAlignment = GUI.Control.HORIZONTAL_ALIGNMENT_LEFT;
-            // host.textBlock!.fontFamily = "Rockwell"
             host.onPointerClickObservable.add(() => {
-                LoadeingScreem.isVisible = true;
                 serverMenu.isVisible = false;
-                serverConnect_1.default.connect();
+                server_1.startServer();
+                isLoadingScreenVisible(true);
             });
             let cancle = subButtonMaker("Cancle", serverMenu);
             cancle.verticalAlignment = GUI.Control.VERTICAL_ALIGNMENT_BOTTOM;
@@ -314,6 +349,11 @@ exports.app = {
                 serverMenu.isVisible = false;
             });
             return serverMenu;
+        };
+        let isLoadingScreenVisible = (visible) => {
+            LoadeingScreem.isVisible = visible;
+        };
+        let loadInplayers = () => {
         };
         let servUI = serverUI();
         const START = mainButtonMaker("Single player", menuPanel);

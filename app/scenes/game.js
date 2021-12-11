@@ -18,19 +18,16 @@ var __importStar = (this && this.__importStar) || function (mod) {
     __setModuleDefault(result, mod);
     return result;
 };
-var __importDefault = (this && this.__importDefault) || function (mod) {
-    return (mod && mod.__esModule) ? mod : { "default": mod };
-};
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.app = void 0;
 const BABYLON = __importStar(require("babylonjs"));
 const GUI = __importStar(require("babylonjs-gui"));
 const Logic = __importStar(require("../logic"));
-const gameSettings_json_1 = __importDefault(require("../settings/gameSettings.json"));
 exports.app = {
     name: "GameScene",
     scene: (engine, canvas) => {
         let scene = new BABYLON.Scene(engine);
+        scene.debugLayer.show();
         let camera = new BABYLON.ArcRotateCamera("Camera1", Math.PI * 0.5, 1, 20, BABYLON.Vector3.Zero(), scene);
         let camera2 = new BABYLON.ArcRotateCamera("Camera2", Math.PI * 0.5, 0, 30, BABYLON.Vector3.Zero(), scene);
         camera2.attachControl(true);
@@ -50,26 +47,26 @@ exports.app = {
         ground.material = tableImg;
         //---------------------------------------------------------------------
         //Game order Visual
-        let player = new Logic.Units(gameSettings_json_1.default.playerName, AdvancedDynamicTexture);
-        let createBot = (place, name) => {
-            let AIs = new Logic.Units(`${name} ${place}`, AdvancedDynamicTexture, place, true);
-            // AIs.setNode(scene) 
-            AIs.createHand(gameLogic);
-            queue.addPlayer(AIs);
-        };
-        //Generate Player hand of cards and player to queue
-        player.createHand(gameLogic);
-        queue.addPlayer(player);
-        //For test only--------------------------------------------------------
-        let newCard = gameLogic.cardMaker(Logic.deck[(Logic.deck.length - 1)]);
-        gameLogic.cardInteractionEffect(newCard);
-        player.hand.push(newCard);
-        //---------------------------------------------------------------------
-        //Generate AI player
-        let botNames = ["JamesBot", "Funkybot", "MonkeyBot"];
-        for (let i = 1; i <= gameSettings_json_1.default.botCount; i++) {
-            createBot(i, botNames[i - 1]);
-        }
+        // let player = new Logic.Units(gameSettings.playerName,AdvancedDynamicTexture)
+        // let createBot = (place:number,name:string)=>{
+        //     let AIs = new Logic.Units(`${name} ${place}`,AdvancedDynamicTexture,place,true)
+        // // AIs.setNode(scene) 
+        //  AIs.createHand(gameLogic)
+        //  queue.addPlayer(AIs)
+        // }
+        // //Generate Player hand of cards and player to queue
+        // player.createHand(gameLogic)
+        // queue.addPlayer(player)
+        // //For test only--------------------------------------------------------
+        // let newCard = gameLogic.cardMaker(Logic.deck[(Logic.deck.length-1)])
+        // gameLogic.cardInteractionEffect(newCard)
+        // player.hand.push(newCard)
+        // //---------------------------------------------------------------------
+        // //Generate AI player
+        // let botNames = ["JamesBot","Funkybot","MonkeyBot"]
+        // for (let i = 1; i <= gameSettings.botCount; i++) {
+        //     createBot(i,botNames[i-1])
+        //     }
         let playerPostions = {
             p1: Math.PI * 0.5,
             p2: Math.PI,
@@ -102,7 +99,7 @@ exports.app = {
                     break;
             }
         });
-        gameLogic.turnSystem();
+        // gameLogic.turnSystem()
         return scene;
     }
 };
